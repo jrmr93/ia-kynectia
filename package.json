@@ -1,0 +1,20 @@
+{
+  "name": "kynectia",
+  "version": "1.0.0",
+  "description": "Panel de administración web para la plataforma de entrenamiento Kynectia",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "migrate": "npm --prefix backend run migrate",
+    "migrate:down": "npm --prefix backend run migrate:down",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test"
+  },
+  "keywords": ["kynectia", "fitness", "admin-panel", "nodejs", "postgresql", "react"],
+  "author": "Kynectia Team",
+  "license": "ISC"
+}

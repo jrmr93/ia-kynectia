@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: Kynectia Admin API
+  description: >
+    API REST para el panel administrativo de Kynectia, plataforma integral de fitness y entrenamiento.
+    Permite la gestión de usuarios, catálogo de ejercicios, grupos musculares, implementos, rutinas versionadas,
+    planes comerciales, suscripciones, anuncios publicitarios y auditoría de eventos.
+  version: 1.0.0
+  contact:
+    name: Kynectia Dev Team
+    email: dev@kynectia.com
+
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Servidor de desarrollo local
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@kynectia.com
+        password:
+          type: string
+          format: password
+          example: AdminKynectia2026!
+
+    UserDto:
+      type: object
+      required:
+        - fullName
+        - email
+      properties:
+        fullName:
+          type: string
+          example: Valeria Rivas
+        email:
+          type: string
+          format: email
+          example: valeria.rivas@email.com
+        phone:
+          type: string
+          example: "+593987654321"
+        gender:
+          type: string
+          enum: [male, female, other, unspecified]
+        heightCm:
+          type: number
+          example: 165
+        weightKg:
+          type: number
+          example: 58.5
+        fitnessGoal:
+          type: string
+          example: hypertrophy
+        isActive:
+          type: boolean
+          example: true
+
+    MuscleGroupDto:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Pectorales
+        description:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        isActive:
+          type: boolean
+
+    ExerciseDto:
+      type: object
+      required:
+        - name
+        - difficultyLevel
+        - exerciseType
+        - primaryMuscleGroupId
+      properties:
+        name:
+          type: string
+          example: Press de Banca Plano con Barra
+        description:
+          type: string
+        executionInstructions:
+          type: string
+        difficultyLevel:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        exerciseType:
+          type: string
+          enum: [strength, cardio, flexibility, hiit, plyometric]
+        primaryMuscleGroupId:
+          type: integer
+        secondaryMuscleGroupIds:
+          type: array
+          items:
+            type: integer
+        equipmentIds:
+          type: array
+          items:
+            type: integer
+        publicationStatus:
+          type: string
+          enum: [draft, published, archived]
+
+    WorkoutRoutineDto:
+      type: object
+      required:
+        - name
+        - goal
+        - difficultyLevel
+        - category
+        - estimatedDurationMinutes
+        - exercises
+      properties:
+        name:
+          type: string
+          example: Torso Hipertrofia y Potencia
+        goal:
+          type: string
+        difficultyLevel:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        category:
+          type: string
+        estimatedDurationMinutes:
+          type: integer
+          example: 50
+        publicationStatus:
+          type: string
+          enum: [draft, published, archived]
+        exercises:
+          type: array
+          items:
+            type: object
+            required:
+              - exerciseId
+              - sequenceOrder
+              - sets
+              - reps
+              - restSeconds
+            properties:
+              exerciseId:
+                type: integer
+              sequenceOrder:
+                type: integer
+              sets:
+                type: integer
+              reps:
+                type: integer
+              restSeconds:
+                type: integer
+              recommendedWeightKg:
+                type: number
+
+paths:
+  /auth/login:
+    post:
+      summary: Iniciar sesión administrativa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: Autenticación exitosa y retorno de JWT
+        '401':
+          description: Credenciales inválidas
+
+  /auth/me:
+    get:
+      summary: Obtener perfil del administrador actual
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del perfil y permisos RBAC
+
+  /dashboard/stats:
+    get:
+      summary: Estadísticas e indicadores en vivo de PostgreSQL
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conteos reales de usuarios, ejercicios, rutinas y gráficos
+
+  /users:
+    get:
+      summary: Listar usuarios con filtros y paginación
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista paginada de usuarios
+    post:
+      summary: Registrar nuevo atleta
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDto'
+      responses:
+        '201':
+          description: Usuario registrado
+
+  /exercises:
+    get:
+      summary: Catálogo maestro de ejercicios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de ejercicios con grupos e implementos
+    post:
+      summary: Crear ejercicio maestro
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExerciseDto'
+      responses:
+        '201':
+          description: Ejercicio creado y asignado transaccionalmente
+
+  /workouts:
+    get:
+      summary: Consultar rutinas de entrenamiento predefinidas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de rutinas
+    post:
+      summary: Crear rutina estructurada y versionada
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkoutRoutineDto'
+      responses:
+        '201':
+          description: Rutina creada
+
+  /plans:
+    get:
+      summary: Listar oferta comercial y precios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Planes comerciales de suscripción
+
+  /ads:
+    get:
+      summary: Listar anuncios publicitarios y banners
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Campañas publicitarias activas
+
+  /audit:
+    get:
+      summary: Consultar bitácora inmutable de auditoría
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Registro de operaciones administrativas
