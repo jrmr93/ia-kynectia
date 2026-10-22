@@ -64,7 +64,7 @@ export const runSeed = async () => {
     await client.query(
       `INSERT INTO admin_users (full_name, email, password_hash, role_id, is_active)
        VALUES ($1, $2, $3, $4, TRUE)
-       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
+       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, is_active = TRUE
        RETURNING id;`,
       ['Administrador General Kynectia', adminEmail, passwordHash, roleMap['superadmin']]
     );
