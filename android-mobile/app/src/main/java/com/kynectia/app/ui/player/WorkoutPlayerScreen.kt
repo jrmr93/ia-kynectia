@@ -23,7 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
+import com.kynectia.app.data.api.ApiClient
 import com.kynectia.app.data.model.WorkoutSummaryResult
 import com.kynectia.app.data.tv.TvCastManager
 import com.kynectia.app.theme.*
@@ -189,9 +191,21 @@ fun WorkoutPlayerScreen(
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            if (!currentExercise.demo_image_url.isNullOrBlank()) {
+                            val context = LocalContext.current
+                            val resolvedVideoUrl = ApiClient.resolveMediaUrl(context, currentExercise.demo_video_url)
+                            val resolvedImageUrl = ApiClient.resolveMediaUrl(context, currentExercise.demo_image_url)
+
+                            if (!resolvedVideoUrl.isNullOrBlank()) {
+                                ExerciseVideoPlayer(
+                                    videoUrl = resolvedVideoUrl,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            } else if (!resolvedImageUrl.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = currentExercise.demo_image_url,
+                                    model = resolvedImageUrl,
                                     contentDescription = currentExercise.exercise_name,
                                     modifier = Modifier
                                         .fillMaxWidth()

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest, getMediaUrl } from '../api/client';
 import type { Exercise, MuscleGroup, Equipment } from '../types';
 import { useToast } from '../context/ToastContext';
 import { Modal } from '../components/Modal';
@@ -16,7 +16,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  PlayCircle,
+  Film,
+  UploadCloud,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const ExercisesView: React.FC = () => {
@@ -58,6 +60,72 @@ export const ExercisesView: React.FC = () => {
     secondaryMuscleGroupIds: [] as number[],
     equipmentIds: [] as number[],
   });
+
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'url'>('upload');
+
+  const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      showToast('error', 'Por favor selecciona un archivo de video válido (MP4, WebM, MOV).');
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      showToast('error', 'El video no debe exceder los 100MB.');
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const data = new FormData();
+      data.append('video', file);
+
+      const res = await apiRequest<{ videoUrl: string }>('/exercises/upload-video', {
+        method: 'POST',
+        body: data,
+        isFormData: true,
+      });
+
+      setFormData((prev) => ({ ...prev, demoVideoUrl: res.data.videoUrl }));
+      showToast('success', 'Video subido correctamente al almacenamiento.');
+    } catch (err: any) {
+      showToast('error', err.message || 'Error al subir el video.');
+    } finally {
+      setUploadingVideo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveVideo = async () => {
+    if (!formData.demoVideoUrl) return;
+
+    const confirmDelete = window.confirm(
+      '¿Deseas eliminar este video? Se borrará permanentemente del almacenamiento para no consumir espacio en disco.'
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      if (editingExercise?.id && editingExercise.demo_video_url === formData.demoVideoUrl) {
+        await apiRequest(`/exercises/${editingExercise.id}/video`, { method: 'DELETE' });
+      } else {
+        await apiRequest('/exercises/delete-video-file', {
+          method: 'POST',
+          body: { videoUrl: formData.demoVideoUrl },
+        });
+      }
+      setFormData((prev) => ({ ...prev, demoVideoUrl: '' }));
+      showToast('success', 'Video eliminado y espacio liberado.');
+      fetchExercises();
+    } catch (err: any) {
+      showToast('error', err.message || 'Error al eliminar el video.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const fetchAuxiliaryData = async () => {
     try {
@@ -363,20 +431,47 @@ export const ExercisesView: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
                         style={{
-                          width: '42px',
-                          height: '42px',
+                          width: '46px',
+                          height: '46px',
                           borderRadius: '8px',
-                          background: ex.demo_image_url
-                            ? `url(${ex.demo_image_url}) center/cover`
+                          background: ex.demo_image_url && !ex.demo_video_url
+                            ? `url(${getMediaUrl(ex.demo_image_url)}) center/cover`
                             : 'rgba(0, 242, 254, 0.1)',
                           border: '1px solid var(--border-subtle)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
+                          position: 'relative',
+                          overflow: 'hidden',
                         }}
                       >
-                        {!ex.demo_image_url && <Activity size={18} color="var(--accent-cyan)" />}
+                        {ex.demo_video_url ? (
+                          <video
+                            src={getMediaUrl(ex.demo_video_url)}
+                            muted
+                            loop
+                            autoPlay
+                            playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : !ex.demo_image_url ? (
+                          <Activity size={18} color="var(--accent-cyan)" />
+                        ) : null}
+                        {ex.demo_video_url && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '2px',
+                              right: '2px',
+                              background: 'rgba(0,0,0,0.7)',
+                              borderRadius: '3px',
+                              padding: '1px 3px',
+                            }}
+                          >
+                            <Film size={10} color="#00f2fe" />
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p style={{ fontWeight: 600, color: '#ffffff' }}>{ex.name}</p>
@@ -633,26 +728,140 @@ export const ExercisesView: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div className="form-group">
               <label className="form-label">URL de Imagen Demostrativa</label>
               <input
-                type="url"
+                type="text"
                 className="form-input"
                 value={formData.demoImageUrl}
                 onChange={(e) => setFormData({ ...formData, demoImageUrl: e.target.value })}
-                placeholder="https://images.unsplash.com/photo-..."
+                placeholder="https://... o /uploads/..."
               />
+              {formData.demoImageUrl && (
+                <div style={{ marginTop: '8px' }}>
+                  <img
+                    src={getMediaUrl(formData.demoImageUrl)}
+                    alt="Vista previa"
+                    style={{ width: '120px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}
+                  />
+                </div>
+              )}
             </div>
+
             <div className="form-group">
-              <label className="form-label">URL de Video Demostrativo (MP4/WebM)</label>
-              <input
-                type="url"
-                className="form-input"
-                value={formData.demoVideoUrl}
-                onChange={(e) => setFormData({ ...formData, demoVideoUrl: e.target.value })}
-                placeholder="https://ejemplo.com/video.mp4"
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Film size={15} color="var(--accent-cyan)" />
+                  Video Demostrativo
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setVideoInputMode(videoInputMode === 'upload' ? 'url' : 'upload')}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {videoInputMode === 'upload' ? 'Ingresar URL manual' : 'Subir archivo de video'}
+                </button>
+              </div>
+
+              {formData.demoVideoUrl ? (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 242, 254, 0.04)',
+                  border: '1px solid rgba(0, 242, 254, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={14} /> Video configurado
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveVideo}
+                      disabled={actionLoading}
+                      className="btn btn-sm btn-danger"
+                      style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title="Eliminar y liberar espacio en disco"
+                    >
+                      <Trash2 size={13} /> Eliminar video
+                    </button>
+                  </div>
+                  <video
+                    src={getMediaUrl(formData.demoVideoUrl)}
+                    controls
+                    loop
+                    muted
+                    playsInline
+                    style={{
+                      width: '100%',
+                      maxHeight: '140px',
+                      borderRadius: '8px',
+                      background: '#000',
+                      objectFit: 'contain',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    Almacenamiento: {formData.demoVideoUrl}
+                  </span>
+                </div>
+              ) : videoInputMode === 'upload' ? (
+                <label
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px 16px',
+                    borderRadius: '10px',
+                    border: '2px dashed var(--border-subtle)',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    cursor: uploadingVideo ? 'wait' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'center',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-cyan)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
+                >
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/ogg"
+                    style={{ display: 'none' }}
+                    disabled={uploadingVideo}
+                    onChange={handleVideoFileChange}
+                  />
+                  {uploadingVideo ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <RefreshCw size={24} className="spin" color="var(--accent-cyan)" />
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Subiendo y almacenando video...
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <UploadCloud size={28} color="var(--accent-cyan)" style={{ marginBottom: '6px' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}>
+                        Subir video demostrativo
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        MP4, WebM o MOV (Hasta 100MB)
+                      </span>
+                    </>
+                  )}
+                </label>
+              ) : (
+                <div>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.demoVideoUrl}
+                    onChange={(e) => setFormData({ ...formData, demoVideoUrl: e.target.value })}
+                    placeholder="https://... o /uploads/videos/..."
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -703,14 +912,29 @@ export const ExercisesView: React.FC = () => {
         {detailExercise && (
           <div>
             <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
-              {detailExercise.demo_image_url && (
+              {detailExercise.demo_video_url ? (
+                <div style={{ width: '260px', height: '175px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-subtle)', background: '#000', position: 'relative' }}>
+                  <video
+                    src={getMediaUrl(detailExercise.demo_video_url)}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    controls
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.68rem', color: '#00f2fe', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Film size={10} /> VIDEO DEMOSTRATIVO
+                  </div>
+                </div>
+              ) : detailExercise.demo_image_url ? (
                 <img
-                  src={detailExercise.demo_image_url}
+                  src={getMediaUrl(detailExercise.demo_image_url)}
                   alt={detailExercise.name}
                   style={{ width: '220px', height: '160px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}
                 />
-              )}
-              <div style={{ flex: 1 }}>
+              ) : null}
+              <div style={{ flex: 1, minWidth: '240px' }}>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                   <span className="badge badge-info">{detailExercise.primary_muscle_name || (detailExercise as any).primary_muscle?.name}</span>
                   <span className="badge badge-purple">{detailExercise.difficulty_level}</span>
@@ -720,16 +944,8 @@ export const ExercisesView: React.FC = () => {
                   {detailExercise.description || 'Sin descripción general.'}
                 </p>
                 {detailExercise.demo_video_url && (
-                  <div style={{ marginTop: '12px' }}>
-                    <a
-                      href={detailExercise.demo_video_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-secondary btn-sm"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <PlayCircle size={16} color="var(--accent-cyan)" /> Ver Video Demostrativo
-                    </a>
+                  <div style={{ marginTop: '12px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    <span>Archivo de video: {detailExercise.demo_video_url}</span>
                   </div>
                 )}
               </div>

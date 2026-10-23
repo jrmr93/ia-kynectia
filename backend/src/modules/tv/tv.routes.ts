@@ -7,6 +7,7 @@ interface TvWorkoutState {
   routineName: string;
   exerciseName: string;
   demoImageUrl?: string;
+  demoVideoUrl?: string;
   currentExerciseIndex: number;
   totalExercises: number;
   currentSetNumber: number;
@@ -205,7 +206,7 @@ const pairSchema = z.object({
   message: 'Debes proporcionar pinCode o sessionId para vincular.',
 });
 
-router.post('/pair', validateRequest({ body: pairSchema }), (req: Request, res: Response) => {
+router.post('/pair', validateRequest({ body: pairSchema as any }), (req: Request, res: Response) => {
   const { pinCode, sessionId, athleteName, athleteEmail } = req.body;
   let session: TvSession | null = null;
 
@@ -233,7 +234,8 @@ const updateStateSchema = z.object({
   sessionId: z.string().min(1),
   routineName: z.string(),
   exerciseName: z.string(),
-  demoImageUrl: z.string().optional(),
+  demoImageUrl: z.string().nullable().optional(),
+  demoVideoUrl: z.string().nullable().optional(),
   currentExerciseIndex: z.number().int(),
   totalExercises: z.number().int(),
   currentSetNumber: z.number().int(),
@@ -250,7 +252,7 @@ const updateStateSchema = z.object({
     totalDurationSeconds: z.number().int(),
     totalSetsCompleted: z.number().int(),
     totalVolumeKg: z.number(),
-  }).optional(),
+  }).nullable().optional(),
 });
 
 router.post('/state', validateRequest({ body: updateStateSchema }), (req: Request, res: Response) => {
@@ -265,7 +267,7 @@ router.post('/state', validateRequest({ body: updateStateSchema }), (req: Reques
 
 // 4. Obtener estado en tiempo real (consultado periódicamente por la app TV y móvil)
 router.get('/session/:sessionId', (req: Request, res: Response) => {
-  const session = TvService.getSession(req.params.sessionId);
+  const session = TvService.getSession(req.params.sessionId as string);
   if (!session) {
     sendError(res, 'Sesión de TV no encontrada o expirada.', 404);
     return;
@@ -299,13 +301,13 @@ router.post('/command', validateRequest({ body: commandSchema }), (req: Request,
 
 // 6. Consumir comandos pendientes desde el móvil
 router.post('/commands/consume/:sessionId', (req: Request, res: Response) => {
-  const commands = TvService.popPendingCommands(req.params.sessionId);
+  const commands = TvService.popPendingCommands(req.params.sessionId as string);
   sendSuccess(res, { commands }, 'Comandos consumidos.');
 });
 
 // 7. Desconectar sesión
 router.post('/disconnect/:sessionId', (req: Request, res: Response) => {
-  TvService.disconnect(req.params.sessionId);
+  TvService.disconnect(req.params.sessionId as string);
   sendSuccess(res, { disconnected: true }, 'Sesión de TV finalizada.');
 });
 

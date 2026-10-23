@@ -32,9 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.kynectia.tv.data.TvApiClient
 import com.kynectia.tv.data.TvLiveWorkoutState
 import com.kynectia.tv.theme.*
 import com.kynectia.tv.ui.TvDisplayOrientation
+import com.kynectia.tv.ui.TvExerciseVideoPlayer
 import java.util.Locale
 
 @Composable
@@ -287,9 +289,18 @@ private fun TvLiveWorkoutHorizontalContent(
                             .background(DarkSurfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!state.demoImageUrl.isNullOrBlank()) {
+                        val resolvedVideoUrl = TvApiClient.resolveMediaUrl(state.demoVideoUrl)
+                        val resolvedImageUrl = TvApiClient.resolveMediaUrl(state.demoImageUrl)
+
+                        if (!resolvedVideoUrl.isNullOrBlank()) {
+                            TvExerciseVideoPlayer(
+                                videoUrl = resolvedVideoUrl,
+                                modifier = Modifier.fillMaxSize(),
+                                cornerRadius = 16.dp
+                            )
+                        } else if (!resolvedImageUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = state.demoImageUrl,
+                                model = resolvedImageUrl,
                                 contentDescription = state.exerciseName,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
@@ -597,9 +608,18 @@ private fun TvLiveWorkoutVerticalContent(
                         .background(DarkSurfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!state.demoImageUrl.isNullOrBlank()) {
+                    val resolvedVideoUrl = TvApiClient.resolveMediaUrl(state.demoVideoUrl)
+                    val resolvedImageUrl = TvApiClient.resolveMediaUrl(state.demoImageUrl)
+
+                    if (!resolvedVideoUrl.isNullOrBlank()) {
+                        TvExerciseVideoPlayer(
+                            videoUrl = resolvedVideoUrl,
+                            modifier = Modifier.fillMaxSize(),
+                            cornerRadius = 16.dp
+                        )
+                    } else if (!resolvedImageUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = state.demoImageUrl,
+                            model = resolvedImageUrl,
                             contentDescription = state.exerciseName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()

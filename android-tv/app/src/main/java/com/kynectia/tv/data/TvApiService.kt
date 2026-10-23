@@ -68,4 +68,23 @@ object TvApiClient {
 
         return retrofit.create(TvApiService::class.java)
     }
+
+    fun resolveMediaUrl(urlOrPath: String?): String? {
+        if (urlOrPath.isNullOrBlank()) return null
+        if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
+            return urlOrPath
+        }
+        val root = try {
+            val uri = java.net.URI(baseUrl)
+            if (uri.port != -1) {
+                "${uri.scheme}://${uri.host}:${uri.port}"
+            } else {
+                "${uri.scheme}://${uri.host}"
+            }
+        } catch (_: Exception) {
+            baseUrl.substringBefore("/api/v1").removeSuffix("/")
+        }
+        val cleanPath = if (urlOrPath.startsWith("/")) urlOrPath else "/$urlOrPath"
+        return "$root$cleanPath"
+    }
 }

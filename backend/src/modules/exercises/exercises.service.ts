@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { pool, withTransaction } from '../../database/pool';
 import { PaginationMeta } from '../../utils/response';
 import { recordAuditLog } from '../../utils/logger';
@@ -317,6 +319,11 @@ export class ExercisesService {
         newValues: dto,
       });
 
+      // Si el video fue cambiado o eliminado, eliminar archivo físico previo de almacenamiento
+      if (dto.demoVideoUrl !== undefined && existing.demo_video_url && existing.demo_video_url !== dto.demoVideoUrl) {
+        await deletePhysicalVideoFile(existing.demo_video_url);
+      }
+
       return updatedExercise;
     });
   }
@@ -360,6 +367,11 @@ export class ExercisesService {
       };
     }
 
+    // Si tiene un archivo de video almacenado localmente, eliminarlo físicamente para liberar disco
+    if (existing.demo_video_url) {
+      await deletePhysicalVideoFile(existing.demo_video_url);
+    }
+
     await pool.query('UPDATE exercises SET deleted_at = NOW(), is_active = FALSE WHERE id = $1;', [id]);
 
     await recordAuditLog({
@@ -372,6 +384,49 @@ export class ExercisesService {
       newValues: { deleted_at: new Date() },
     });
 
-    return { message: 'Ejercicio eliminado exitosamente (soft-delete).' };
+    return { message: 'Ejercicio eliminado exitosamente y sus recursos físicos liberados.' };
+  }
+
+  static async deleteExerciseVideo(id: number, adminId?: number, adminEmail?: string) {
+    const existing = await this.getById(id);
+    if (existing.demo_video_url) {
+      await deletePhysicalVideoFile(existing.demo_video_url);
+      await pool.query('UPDATE exercises SET demo_video_url = NULL WHERE id = $1', [id]);
+      await recordAuditLog({
+        adminId,
+        adminEmail,
+        action: 'UPDATE',
+        entityType: 'exercises',
+        entityId: id,
+        oldValues: { demo_video_url: existing.demo_video_url },
+        newValues: { demo_video_url: null },
+      });
+    }
+    return { message: 'Video eliminado del ejercicio y liberado de la ruta de almacenamiento.' };
+  }
+
+  static async deleteVideoFile(videoUrl: string) {
+    const deleted = await deletePhysicalVideoFile(videoUrl);
+    await pool.query('UPDATE exercises SET demo_video_url = NULL WHERE demo_video_url = $1', [videoUrl]);
+    return { deleted, message: 'Archivo de video eliminado permanentemente del servidor.' };
   }
 }
+
+export const deletePhysicalVideoFile = async (fileUrlOrPath?: string | null): Promise<boolean> => {
+  if (!fileUrlOrPath) return false;
+  try {
+    const match = fileUrlOrPath.match(/\/uploads\/videos\/([a-zA-Z0-9_\-\.]+)/);
+    if (!match) return false;
+    const filename = match[1];
+    const safeFilename = path.basename(filename);
+    const fullPath = path.resolve(__dirname, '../../../uploads/videos', safeFilename);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      await pool.query('DELETE FROM media_assets WHERE file_path LIKE $1', [`%${safeFilename}`]);
+      return true;
+    }
+  } catch (error) {
+    console.error('Error al eliminar archivo de video físico:', error);
+  }
+  return false;
+};

@@ -31,7 +31,7 @@ class SessionManager(context: Context) {
         }
     }
 
-    private val isEmulator: Boolean
+    val isEmulator: Boolean
         get() = Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
@@ -42,8 +42,8 @@ class SessionManager(context: Context) {
         get() {
             val saved = prefs.getString(KEY_BASE_URL, null)
             return if (!saved.isNullOrBlank()) {
-                // Si está en un dispositivo físico y la URL guardada era 10.0.2.2, auto-migrar a la IP LAN
-                if (!isEmulator && saved.contains("10.0.2.2")) {
+                // Si está en un dispositivo físico y la URL guardada era 10.0.2.2 o localhost, auto-migrar a la IP LAN
+                if (!isEmulator && (saved.contains("10.0.2.2") || saved.contains("localhost") || saved.contains("127.0.0.1"))) {
                     HOST_LAN_URL
                 } else {
                     saved

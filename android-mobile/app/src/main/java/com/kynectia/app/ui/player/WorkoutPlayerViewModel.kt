@@ -324,6 +324,7 @@ class WorkoutPlayerViewModel(
             routineName = routine.name,
             exerciseName = currentExercise?.exercise_name ?: "Ejercicio",
             demoImageUrl = currentExercise?.demo_image_url,
+            demoVideoUrl = currentExercise?.demo_video_url,
             currentExerciseIndex = state.currentExerciseIndex,
             totalExercises = routine.exercises.size,
             currentSetNumber = state.currentSetNumber,

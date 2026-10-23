@@ -21,10 +21,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.kynectia.app.data.api.ApiClient
 import com.kynectia.app.data.model.Exercise
 import com.kynectia.app.theme.*
+import com.kynectia.app.ui.player.ExerciseVideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,10 +186,8 @@ fun ExerciseCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable { onClick() },
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
         shape = RoundedCornerShape(14.dp)
     ) {
@@ -194,24 +195,61 @@ fun ExerciseCard(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!exercise.demo_image_url.isNullOrBlank()) {
-                AsyncImage(
-                    model = exercise.demo_image_url,
-                    contentDescription = exercise.name,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(10.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(DarkSurfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = KynectiaLime)
+            val context = LocalContext.current
+            val resolvedVideoUrl = ApiClient.resolveMediaUrl(context, exercise.demo_video_url)
+            val resolvedImageUrl = ApiClient.resolveMediaUrl(context, exercise.demo_image_url)
+            val hasVideo = !resolvedVideoUrl.isNullOrBlank()
+
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DarkSurfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!resolvedImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = resolvedImageUrl,
+                        contentDescription = exercise.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        tint = KynectiaLime.copy(alpha = 0.7f),
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                if (hasVideo) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 4.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.Black.copy(alpha = 0.75f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.PlayCircle,
+                                contentDescription = null,
+                                tint = KynectiaLime,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "VIDEO",
+                                color = KynectiaLime,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
 
@@ -265,9 +303,20 @@ fun ExerciseDetailDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                if (!exercise.demo_image_url.isNullOrBlank()) {
+                val context = LocalContext.current
+                val resolvedVideoUrl = ApiClient.resolveMediaUrl(context, exercise.demo_video_url)
+                val resolvedImageUrl = ApiClient.resolveMediaUrl(context, exercise.demo_image_url)
+
+                if (!resolvedVideoUrl.isNullOrBlank()) {
+                    ExerciseVideoPlayer(
+                        videoUrl = resolvedVideoUrl,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                    )
+                } else if (!resolvedImageUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model = exercise.demo_image_url,
+                        model = resolvedImageUrl,
                         contentDescription = exercise.name,
                         modifier = Modifier
                             .fillMaxWidth()

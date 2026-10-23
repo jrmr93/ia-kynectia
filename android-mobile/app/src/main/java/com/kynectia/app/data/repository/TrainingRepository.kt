@@ -27,7 +27,7 @@ class TrainingRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "TrainingRepository"
-        private const val FAST_NETWORK_TIMEOUT_MS = 2500L
+        private const val FAST_NETWORK_TIMEOUT_MS = 6000L
     }
 
     suspend fun getWorkouts(search: String? = null, difficultyLevel: String? = null, category: String? = null): List<WorkoutRoutine> = withContext(Dispatchers.IO) {
@@ -54,23 +54,21 @@ class TrainingRepository(private val context: Context) {
     }
 
     suspend fun getWorkoutDetail(id: Int): WorkoutRoutine? = withContext(Dispatchers.IO) {
-        // Retornar de la caché de inmediato si ya existe
-        val local = cachedWorkouts.value.find { it.id == id }
-        if (local != null && local.exercises.isNotEmpty()) {
-            return@withContext local
-        }
-
+        // Consultar primero al backend para obtener los ejercicios reales actualizados de PostgreSQL
         try {
             val response = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) {
                 api.getWorkoutById(id)
             }
             if (response?.success == true && response.data != null) {
-                return@withContext response.data
+                val fresh = response.data
+                cachedWorkouts.value = cachedWorkouts.value.map { if (it.id == id) fresh else it }
+                return@withContext fresh
             }
         } catch (e: Exception) {
-            Log.d(TAG, "Red no disponible para getWorkoutDetail ($id)")
+            Log.d(TAG, "Red no disponible para getWorkoutDetail ($id): ${e.message}")
         }
 
+        val local = cachedWorkouts.value.find { it.id == id }
         return@withContext local ?: MockDataProvider.mockRoutines.find { it.id == id }
     }
 

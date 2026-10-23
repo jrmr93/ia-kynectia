@@ -75,6 +75,10 @@ dependencies {
   // Image Loading
   implementation(libs.coil.compose)
 
+  // Video Player (Media3 / ExoPlayer para bucle indefinido de ejercicios)
+  implementation("androidx.media3:media3-exoplayer:1.5.1")
+  implementation("androidx.media3:media3-ui:1.5.1")
+
   // Tooling
   debugImplementation(libs.androidx.compose.ui.tooling)
   // Instrumented tests

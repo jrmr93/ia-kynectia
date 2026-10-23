@@ -72,4 +72,45 @@ export class ExercisesController {
       next(error);
     }
   }
+
+  static async uploadVideo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.file) {
+        throw { statusCode: 400, message: 'No se ha subido ningún archivo de video.' };
+      }
+      const videoUrl = `/uploads/videos/${req.file.filename}`;
+      sendSuccess(res, {
+        videoUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        sizeBytes: req.file.size,
+        mimeType: req.file.mimetype,
+      }, 'Video subido exitosamente al servidor.', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteExerciseVideo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = parseIdParam(req.params.id);
+      const result = await ExercisesService.deleteExerciseVideo(id, req.admin?.id, req.admin?.email);
+      sendSuccess(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteVideoFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { videoUrl } = req.body;
+      if (!videoUrl) {
+        throw { statusCode: 400, message: 'La URL o ruta del video es requerida.' };
+      }
+      const result = await ExercisesService.deleteVideoFile(videoUrl);
+      sendSuccess(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

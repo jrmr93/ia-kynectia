@@ -23,6 +23,7 @@ object MockDataProvider {
             difficulty_level = "intermediate",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "Mantén los pies firmes en el suelo y no arquees la espalda excesivamente.",
             primary_muscle_name = "Pectorales",
             equipment_names = listOf("Barra Olímpica", "Banco Plano")
@@ -35,6 +36,7 @@ object MockDataProvider {
             difficulty_level = "advanced",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "Mantén la mirada al frente y la columna neutra durante todo el recorrido.",
             primary_muscle_name = "Cuádriceps",
             equipment_names = listOf("Barra Olímpica", "Rack de Sentadillas")
@@ -47,6 +49,7 @@ object MockDataProvider {
             difficulty_level = "intermediate",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "Evita el balanceo con las piernas para no perder tensión en los dorsales.",
             primary_muscle_name = "Dorsales",
             equipment_names = listOf("Barra de Dominadas")
@@ -59,6 +62,7 @@ object MockDataProvider {
             difficulty_level = "intermediate",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "No impulses con la espalda baja; mantén el abdomen contraído.",
             primary_muscle_name = "Deltoides",
             equipment_names = listOf("Mancuernas", "Banco Ajustable")
@@ -71,6 +75,7 @@ object MockDataProvider {
             difficulty_level = "beginner",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "No uses impulso de los hombros para subir el peso.",
             primary_muscle_name = "Bíceps",
             equipment_names = listOf("Mancuernas", "Banco Ajustable")
@@ -83,6 +88,7 @@ object MockDataProvider {
             difficulty_level = "advanced",
             exercise_type = "strength",
             demo_image_url = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800",
+            demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
             safety_recommendations = "No desciendas más allá de los 90 grados si sientes molestias en los hombros.",
             primary_muscle_name = "Tríceps",
             equipment_names = listOf("Barras Paralelas")
@@ -109,7 +115,8 @@ object MockDataProvider {
                     reps = 8,
                     rest_seconds = 90,
                     recommended_weight_kg = 70.0,
-                    specific_instructions = "Pausa de 1 segundo en el pecho antes de empujar."
+                    specific_instructions = "Pausa de 1 segundo en el pecho antes de empujar.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 ),
                 RoutineExerciseDetail(
                     id = 102,
@@ -120,7 +127,8 @@ object MockDataProvider {
                     reps = 10,
                     rest_seconds = 75,
                     recommended_weight_kg = 0.0,
-                    specific_instructions = "Si puedes más de 10, usa cinturón de lastre."
+                    specific_instructions = "Si puedes más de 10, usa cinturón de lastre.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 ),
                 RoutineExerciseDetail(
                     id = 103,
@@ -131,7 +139,8 @@ object MockDataProvider {
                     reps = 10,
                     rest_seconds = 60,
                     recommended_weight_kg = 20.0,
-                    specific_instructions = "Cadencia 2-0-1 controlada."
+                    specific_instructions = "Cadencia 2-0-1 controlada.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 ),
                 RoutineExerciseDetail(
                     id = 104,
@@ -142,7 +151,8 @@ object MockDataProvider {
                     reps = 12,
                     rest_seconds = 45,
                     recommended_weight_kg = 14.0,
-                    specific_instructions = "Enfócate en el estiramiento en la parte inferior."
+                    specific_instructions = "Enfócate en el estiramiento en la parte inferior.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 ),
                 RoutineExerciseDetail(
                     id = 105,
@@ -153,7 +163,8 @@ object MockDataProvider {
                     reps = 12,
                     rest_seconds = 60,
                     recommended_weight_kg = 0.0,
-                    specific_instructions = "Bloqueo suave de tríceps en la cima."
+                    specific_instructions = "Bloqueo suave de tríceps en la cima.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 )
             )
         ),
@@ -176,7 +187,8 @@ object MockDataProvider {
                     reps = 5,
                     rest_seconds = 120,
                     recommended_weight_kg = 90.0,
-                    specific_instructions = "Series de fuerza pesadas con técnica impecable."
+                    specific_instructions = "Series de fuerza pesadas con técnica impecable.",
+                    demo_video_url = "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4"
                 )
             )
         )

@@ -32,6 +32,7 @@ data class TvLiveWorkoutState(
     val routineName: String,
     val exerciseName: String,
     val demoImageUrl: String? = null,
+    val demoVideoUrl: String? = null,
     val currentExerciseIndex: Int = 0,
     val totalExercises: Int = 1,
     val currentSetNumber: Int = 1,

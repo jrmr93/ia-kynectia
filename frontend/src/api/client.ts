@@ -99,3 +99,13 @@ export const apiRequest = async <T = any>(
     );
   }
 };
+
+export const getMediaUrl = (urlOrPath?: string | null): string => {
+  if (!urlOrPath) return '';
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    return urlOrPath;
+  }
+  const cleanPath = urlOrPath.startsWith('/') ? urlOrPath : `/${urlOrPath}`;
+  return `http://${window.location.hostname}:4000${cleanPath}`;
+};
+

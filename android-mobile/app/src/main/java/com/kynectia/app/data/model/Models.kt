@@ -49,7 +49,8 @@ data class RoutineExerciseDetail(
     val exercise_name: String? = null,
     val difficulty_level: String? = null,
     val exercise_type: String? = null,
-    val demo_image_url: String? = null
+    val demo_image_url: String? = null,
+    val demo_video_url: String? = null
 )
 
 @Serializable
@@ -155,6 +156,7 @@ data class TvLiveWorkoutPayload(
     val routineName: String,
     val exerciseName: String,
     val demoImageUrl: String? = null,
+    val demoVideoUrl: String? = null,
     val currentExerciseIndex: Int,
     val totalExercises: Int,
     val currentSetNumber: Int,

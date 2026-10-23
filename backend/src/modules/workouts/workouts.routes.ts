@@ -36,13 +36,11 @@ const statusSchema = z.object({
   status: z.enum(['draft', 'published', 'archived']),
 });
 
-router.use(requireAuth);
-
 router.get('/', WorkoutsController.list);
 router.get('/:id', WorkoutsController.getById);
-router.post('/', requirePermission('routines:manage'), validateRequest({ body: createWorkoutSchema }), WorkoutsController.create);
-router.put('/:id', requirePermission('routines:manage'), validateRequest({ body: updateWorkoutSchema }), WorkoutsController.update);
-router.patch('/:id/status', requirePermission('routines:manage'), validateRequest({ body: statusSchema }), WorkoutsController.setStatus);
-router.delete('/:id', requirePermission('routines:manage'), WorkoutsController.delete);
+router.post('/', requireAuth, requirePermission('routines:manage'), validateRequest({ body: createWorkoutSchema }), WorkoutsController.create);
+router.put('/:id', requireAuth, requirePermission('routines:manage'), validateRequest({ body: updateWorkoutSchema }), WorkoutsController.update);
+router.patch('/:id/status', requireAuth, requirePermission('routines:manage'), validateRequest({ body: statusSchema }), WorkoutsController.setStatus);
+router.delete('/:id', requireAuth, requirePermission('routines:manage'), WorkoutsController.delete);
 
 export default router;

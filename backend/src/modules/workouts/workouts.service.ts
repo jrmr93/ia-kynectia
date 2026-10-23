@@ -120,7 +120,7 @@ export class WorkoutsService {
       SELECT re.id, re.sequence_order, re.sets, re.reps, re.duration_seconds,
              re.rest_seconds, re.recommended_weight_kg, re.specific_instructions,
              e.id as exercise_id, e.name as exercise_name, e.difficulty_level,
-             e.exercise_type, e.demo_image_url
+             e.exercise_type, e.demo_image_url, e.demo_video_url
       FROM routine_exercises re
       JOIN exercises e ON re.exercise_id = e.id
       WHERE re.routine_id = $1
