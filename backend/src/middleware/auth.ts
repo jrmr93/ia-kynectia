@@ -13,10 +13,18 @@ export interface AuthenticatedAdmin {
   permissions: string[];
 }
 
+export interface AuthenticatedUser {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
 declare global {
   namespace Express {
     interface Request {
       admin?: AuthenticatedAdmin;
+      user?: AuthenticatedUser;
     }
   }
 }
@@ -34,7 +42,35 @@ export const requireAuth = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { adminId: number };
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { adminId?: number; userId?: number; role?: string };
+
+    if (decoded.userId) {
+      const { rows: userRows } = await pool.query(
+        'SELECT id, full_name, email, is_active FROM users WHERE id = $1 AND deleted_at IS NULL;',
+        [decoded.userId]
+      );
+      if (userRows.length === 0) {
+        sendError(res, 'Usuario atleta no encontrado o eliminado.', 401);
+        return;
+      }
+      if (!userRows[0].is_active) {
+        sendError(res, 'Cuenta de usuario inactiva.', 403);
+        return;
+      }
+      req.user = {
+        id: userRows[0].id,
+        email: userRows[0].email,
+        fullName: userRows[0].full_name,
+        role: decoded.role || 'athlete',
+      };
+      next();
+      return;
+    }
+
+    if (!decoded.adminId) {
+      sendError(res, 'Token no válido para la operación.', 401);
+      return;
+    }
 
     const query = `
       SELECT a.id, a.full_name, a.email, a.role_id, a.is_active,

@@ -20,6 +20,7 @@ import plansRoutes from './modules/plans/plans.routes';
 import adsRoutes from './modules/ads/ads.routes';
 import mediaRoutes from './modules/media/media.routes';
 import auditRoutes from './modules/audit/audit.routes';
+import tvRoutes from './modules/tv/tv.routes';
 
 export const createApp = (): Application => {
   const app = express();
@@ -80,6 +81,7 @@ export const createApp = (): Application => {
   apiV1.use('/ads', adsRoutes);
   apiV1.use('/media', mediaRoutes);
   apiV1.use('/audit', auditRoutes);
+  apiV1.use('/tv', tvRoutes);
 
   app.use('/api/v1', apiV1);
 

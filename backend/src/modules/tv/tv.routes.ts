@@ -1,0 +1,313 @@
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { validateRequest } from '../../middleware/validate';
+import { sendSuccess, sendError } from '../../utils/response';
+
+interface TvWorkoutState {
+  routineName: string;
+  exerciseName: string;
+  demoImageUrl?: string;
+  currentExerciseIndex: number;
+  totalExercises: number;
+  currentSetNumber: number;
+  totalSets: number;
+  reps: number;
+  weightKg: number;
+  isResting: boolean;
+  restSecondsRemaining: number;
+  restSecondsTotal: number;
+  elapsedWorkoutSeconds: number;
+  isPaused: boolean;
+  isFinished: boolean;
+  summary?: {
+    totalDurationSeconds: number;
+    totalSetsCompleted: number;
+    totalVolumeKg: number;
+  };
+  lastUpdated: number;
+}
+
+export interface TvRemoteCommand {
+  id: string;
+  command: 'TOGGLE_PAUSE' | 'SKIP_REST' | 'NEXT_EXERCISE' | 'PREV_EXERCISE';
+  timestamp: number;
+}
+
+interface TvSession {
+  sessionId: string;
+  pinCode: string;
+  qrPayload: string;
+  createdAt: number;
+  expiresAt: number;
+  isPaired: boolean;
+  pairedAthleteName?: string;
+  pairedAthleteEmail?: string;
+  currentState?: TvWorkoutState;
+  pendingCommands?: TvRemoteCommand[];
+}
+
+
+// Almacén en memoria de sesiones de TV activas
+const tvSessions = new Map<string, TvSession>();
+const pinIndex = new Map<string, string>(); // pinCode -> sessionId
+
+// Limpieza periódica de sesiones expiradas (3 horas de vigencia)
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of tvSessions.entries()) {
+    if (session.expiresAt < now) {
+      pinIndex.delete(session.pinCode);
+      tvSessions.delete(id);
+    }
+  }
+}, 5 * 60 * 1000);
+
+export class TvService {
+  static createSession(): TvSession {
+    // Generar PIN aleatorio de 6 dígitos no repetido
+    let pinCode: string;
+    do {
+      pinCode = Math.floor(100000 + Math.random() * 900000).toString();
+    } while (pinIndex.has(pinCode));
+
+    const sessionId = `tv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const now = Date.now();
+    const expiresAt = now + 4 * 60 * 60 * 1000; // 4 horas
+
+    const qrPayload = JSON.stringify({
+      app: 'kynectia',
+      type: 'tv_pairing',
+      sessionId,
+      pinCode,
+    });
+
+    const session: TvSession = {
+      sessionId,
+      pinCode,
+      qrPayload,
+      createdAt: now,
+      expiresAt,
+      isPaired: false,
+    };
+
+    tvSessions.set(sessionId, session);
+    pinIndex.set(pinCode, sessionId);
+
+    return session;
+  }
+
+  static pairWithPin(pinCode: string, athleteName?: string, athleteEmail?: string): TvSession | null {
+    const sessionId = pinIndex.get(pinCode.trim());
+    if (!sessionId) return null;
+
+    const session = tvSessions.get(sessionId);
+    if (!session || session.expiresAt < Date.now()) return null;
+
+    session.isPaired = true;
+    session.pairedAthleteName = athleteName || 'Atleta Kynectia';
+    session.pairedAthleteEmail = athleteEmail;
+
+    return session;
+  }
+
+  static pairWithSessionId(sessionId: string, athleteName?: string, athleteEmail?: string): TvSession | null {
+    const session = tvSessions.get(sessionId);
+    if (!session || session.expiresAt < Date.now()) return null;
+
+    session.isPaired = true;
+    session.pairedAthleteName = athleteName || 'Atleta Kynectia';
+    session.pairedAthleteEmail = athleteEmail;
+
+    return session;
+  }
+
+  static updateState(sessionId: string, state: Omit<TvWorkoutState, 'lastUpdated'>): boolean {
+    const session = tvSessions.get(sessionId);
+    if (!session) return false;
+
+    session.currentState = {
+      ...state,
+      lastUpdated: Date.now(),
+    };
+    return true;
+  }
+
+  static getSession(sessionId: string): TvSession | null {
+    const session = tvSessions.get(sessionId);
+    if (!session || session.expiresAt < Date.now()) return null;
+    return session;
+  }
+
+  static disconnect(sessionId: string): boolean {
+    const session = tvSessions.get(sessionId);
+    if (session) {
+      pinIndex.delete(session.pinCode);
+      tvSessions.delete(sessionId);
+      return true;
+    }
+    return false;
+  }
+
+  static pushCommand(sessionId: string, command: 'TOGGLE_PAUSE' | 'SKIP_REST' | 'NEXT_EXERCISE' | 'PREV_EXERCISE'): boolean {
+    const session = tvSessions.get(sessionId);
+    if (!session) return false;
+
+    if (!session.pendingCommands) session.pendingCommands = [];
+    session.pendingCommands.push({
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      command,
+      timestamp: Date.now()
+    });
+
+    if (session.currentState) {
+      if (command === 'TOGGLE_PAUSE') {
+        session.currentState.isPaused = !session.currentState.isPaused;
+      } else if (command === 'SKIP_REST') {
+        session.currentState.isResting = false;
+        session.currentState.restSecondsRemaining = 0;
+      }
+      session.currentState.lastUpdated = Date.now();
+    }
+    return true;
+  }
+
+  static popPendingCommands(sessionId: string): TvRemoteCommand[] {
+    const session = tvSessions.get(sessionId);
+    if (!session || !session.pendingCommands) return [];
+    const commands = [...session.pendingCommands];
+    session.pendingCommands = [];
+    return commands;
+  }
+}
+
+
+// Router
+const router = Router();
+
+// 1. Iniciar sesión de TV (Genera PIN y QR para mostrar en pantalla grande)
+router.post('/session', (_req: Request, res: Response) => {
+  const session = TvService.createSession();
+  sendSuccess(res, {
+    sessionId: session.sessionId,
+    pinCode: session.pinCode,
+    qrPayload: session.qrPayload,
+    expiresAt: session.expiresAt,
+  }, 'Sesión de Android TV creada exitosamente.', 201);
+});
+
+// 2. Vincular desde la app móvil (vía código PIN o QR)
+const pairSchema = z.object({
+  pinCode: z.string().min(4).max(10).optional(),
+  sessionId: z.string().optional(),
+  athleteName: z.string().optional(),
+  athleteEmail: z.string().optional(),
+}).refine(data => data.pinCode || data.sessionId, {
+  message: 'Debes proporcionar pinCode o sessionId para vincular.',
+});
+
+router.post('/pair', validateRequest({ body: pairSchema }), (req: Request, res: Response) => {
+  const { pinCode, sessionId, athleteName, athleteEmail } = req.body;
+  let session: TvSession | null = null;
+
+  if (pinCode) {
+    session = TvService.pairWithPin(pinCode, athleteName, athleteEmail);
+  } else if (sessionId) {
+    session = TvService.pairWithSessionId(sessionId, athleteName, athleteEmail);
+  }
+
+  if (!session) {
+    sendError(res, 'Código PIN o sesión inválida o expirada.', 404);
+    return;
+  }
+
+  sendSuccess(res, {
+    sessionId: session.sessionId,
+    pinCode: session.pinCode,
+    isPaired: session.isPaired,
+    pairedAthleteName: session.pairedAthleteName,
+  }, 'Vinculación exitosa con la pantalla Android TV.');
+});
+
+// 3. Emitir estado del entrenamiento desde el móvil a la TV
+const updateStateSchema = z.object({
+  sessionId: z.string().min(1),
+  routineName: z.string(),
+  exerciseName: z.string(),
+  demoImageUrl: z.string().optional(),
+  currentExerciseIndex: z.number().int(),
+  totalExercises: z.number().int(),
+  currentSetNumber: z.number().int(),
+  totalSets: z.number().int(),
+  reps: z.number().int(),
+  weightKg: z.number(),
+  isResting: z.boolean(),
+  restSecondsRemaining: z.number().int(),
+  restSecondsTotal: z.number().int(),
+  elapsedWorkoutSeconds: z.number().int(),
+  isPaused: z.boolean(),
+  isFinished: z.boolean(),
+  summary: z.object({
+    totalDurationSeconds: z.number().int(),
+    totalSetsCompleted: z.number().int(),
+    totalVolumeKg: z.number(),
+  }).optional(),
+});
+
+router.post('/state', validateRequest({ body: updateStateSchema }), (req: Request, res: Response) => {
+  const { sessionId, ...state } = req.body;
+  const ok = TvService.updateState(sessionId, state);
+  if (!ok) {
+    sendError(res, 'Sesión de TV no encontrada o inactiva.', 404);
+    return;
+  }
+  sendSuccess(res, { updated: true }, 'Estado de entrenamiento actualizado en TV.');
+});
+
+// 4. Obtener estado en tiempo real (consultado periódicamente por la app TV y móvil)
+router.get('/session/:sessionId', (req: Request, res: Response) => {
+  const session = TvService.getSession(req.params.sessionId);
+  if (!session) {
+    sendError(res, 'Sesión de TV no encontrada o expirada.', 404);
+    return;
+  }
+
+  sendSuccess(res, {
+    sessionId: session.sessionId,
+    pinCode: session.pinCode,
+    isPaired: session.isPaired,
+    pairedAthleteName: session.pairedAthleteName,
+    state: session.currentState || null,
+    pendingCommands: session.pendingCommands || [],
+  }, 'Estado actual de la sesión de TV obtenido.');
+});
+
+// 5. Enviar comando desde el control remoto de Android TV
+const commandSchema = z.object({
+  sessionId: z.string().min(1),
+  command: z.enum(['TOGGLE_PAUSE', 'SKIP_REST', 'NEXT_EXERCISE', 'PREV_EXERCISE']),
+});
+
+router.post('/command', validateRequest({ body: commandSchema }), (req: Request, res: Response) => {
+  const { sessionId, command } = req.body;
+  const ok = TvService.pushCommand(sessionId, command);
+  if (!ok) {
+    sendError(res, 'Sesión de TV no encontrada o inactiva.', 404);
+    return;
+  }
+  sendSuccess(res, { command, success: true }, 'Comando del control remoto procesado.');
+});
+
+// 6. Consumir comandos pendientes desde el móvil
+router.post('/commands/consume/:sessionId', (req: Request, res: Response) => {
+  const commands = TvService.popPendingCommands(req.params.sessionId);
+  sendSuccess(res, { commands }, 'Comandos consumidos.');
+});
+
+// 7. Desconectar sesión
+router.post('/disconnect/:sessionId', (req: Request, res: Response) => {
+  TvService.disconnect(req.params.sessionId);
+  sendSuccess(res, { disconnected: true }, 'Sesión de TV finalizada.');
+});
+
+export default router;
+

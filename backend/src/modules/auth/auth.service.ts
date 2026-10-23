@@ -20,6 +20,42 @@ export class AuthService {
 
     const { rows } = await pool.query(query, [email]);
     if (rows.length === 0) {
+      // Intentar login como usuario atleta de la plataforma
+      const userQuery = `
+        SELECT u.id, u.full_name, u.email, u.phone, u.fitness_goal, u.height_cm, u.weight_kg, u.is_active,
+               (SELECT p.name FROM user_subscriptions s
+                JOIN plans p ON s.plan_id = p.id
+                WHERE s.user_id = u.id AND s.status = 'active'
+                ORDER BY s.end_date DESC LIMIT 1) as plan_name
+        FROM users u
+        WHERE LOWER(u.email) = LOWER($1) AND u.deleted_at IS NULL;
+      `;
+      const { rows: userRows } = await pool.query(userQuery, [email]);
+      if (userRows.length > 0) {
+        const user = userRows[0];
+        if (!user.is_active) {
+          throw { statusCode: 403, message: 'Tu cuenta de usuario está inactiva. Contacta a soporte.' };
+        }
+        const token = jwt.sign(
+          { userId: user.id, email: user.email, role: 'athlete' },
+          env.JWT_SECRET,
+          { expiresIn: env.JWT_EXPIRES_IN as any }
+        );
+        return {
+          token,
+          user: {
+            id: user.id,
+            fullName: user.full_name,
+            email: user.email,
+            phone: user.phone,
+            fitnessGoal: user.fitness_goal,
+            heightCm: user.height_cm ? parseFloat(user.height_cm) : null,
+            weightKg: user.weight_kg ? parseFloat(user.weight_kg) : null,
+            planName: user.plan_name || 'Plan Starter',
+          },
+        };
+      }
+
       throw { statusCode: 401, message: 'Credenciales inválidas. Verifica tu correo y contraseña.' };
     }
 

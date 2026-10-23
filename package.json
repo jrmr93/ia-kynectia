@@ -12,7 +12,9 @@
     "migrate": "npm --prefix backend run migrate",
     "migrate:down": "npm --prefix backend run migrate:down",
     "seed": "npm --prefix backend run seed",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "android:build": "cd android-mobile && .\\gradlew.bat assembleDebug",
+    "android:test": "cd android-mobile && .\\gradlew.bat testDebugUnitTest"
   },
   "keywords": ["kynectia", "fitness", "admin-panel", "nodejs", "postgresql", "react"],
   "author": "Kynectia Team",
