@@ -4,6 +4,8 @@ import type { Exercise, MuscleGroup, Equipment } from '../types';
 import { useToast } from '../context/ToastContext';
 import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ImageUpload } from '../components/ImageUpload';
+import { HumanBodyVisualizer } from '../components/HumanBodyVisualizer';
 import {
   Activity,
   Plus,
@@ -19,6 +21,8 @@ import {
   Film,
   UploadCloud,
   CheckCircle2,
+  Filter,
+  X,
 } from 'lucide-react';
 
 export const ExercisesView: React.FC = () => {
@@ -33,6 +37,9 @@ export const ExercisesView: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedMuscleGroupId, setSelectedMuscleGroupId] = useState<number | null>(null);
+  const [hoveredMuscleGroupId, setHoveredMuscleGroupId] = useState<number | null>(null);
+  const [showBodyVisualizer, setShowBodyVisualizer] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -148,6 +155,7 @@ export const ExercisesView: React.FC = () => {
       if (difficultyFilter !== 'all') params.difficultyLevel = difficultyFilter;
       if (typeFilter !== 'all') params.exerciseType = typeFilter;
       if (statusFilter !== 'all') params.publicationStatus = statusFilter;
+      if (selectedMuscleGroupId) params.muscleGroupId = selectedMuscleGroupId;
 
       const res = await apiRequest<Exercise[]>('/exercises', { params });
       setExercises(res.data);
@@ -160,7 +168,7 @@ export const ExercisesView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, difficultyFilter, typeFilter, statusFilter, showToast]);
+  }, [page, search, difficultyFilter, typeFilter, statusFilter, selectedMuscleGroupId, showToast]);
 
   useEffect(() => {
     fetchAuxiliaryData();
@@ -309,21 +317,47 @@ export const ExercisesView: React.FC = () => {
     });
   };
 
+  const selectedMuscleObj = muscleGroups.find((m) => m.id === selectedMuscleGroupId);
+
   return (
     <div className="page-container">
       {/* Encabezado */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>Catálogo de Ejercicios</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Repositorio maestro de movimientos, instrucciones técnicas, seguridad y multimedia ({totalCount} registrados).
           </p>
         </div>
-        <button onClick={handleOpenCreate} className="btn btn-primary">
-          <Plus size={18} />
-          <span>Nuevo Ejercicio</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => setShowBodyVisualizer(!showBodyVisualizer)}
+            className="btn btn-secondary"
+            title="Alternar vista del modelo anatómico interactivo"
+          >
+            <Activity size={16} color="var(--accent-cyan)" />
+            <span>{showBodyVisualizer ? 'Ocultar Modelo Anatómico' : 'Ver Modelo Anatómico'}</span>
+          </button>
+          <button onClick={handleOpenCreate} className="btn btn-primary">
+            <Plus size={18} />
+            <span>Nuevo Ejercicio</span>
+          </button>
+        </div>
       </div>
+
+      {/* Modelo Anatómico Interactivo para filtrado por grupo muscular */}
+      {showBodyVisualizer && (
+        <HumanBodyVisualizer
+          muscles={muscleGroups}
+          selectedMuscleId={selectedMuscleGroupId}
+          hoveredMuscleId={hoveredMuscleGroupId}
+          onSelectMuscle={(m) => {
+            setSelectedMuscleGroupId(m ? m.id : null);
+            setPage(1);
+          }}
+        />
+      )}
 
       {/* Filtros */}
       <div className="filter-bar">
@@ -340,6 +374,45 @@ export const ExercisesView: React.FC = () => {
             }}
           />
         </div>
+
+        {selectedMuscleGroupId && selectedMuscleObj && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              background: 'rgba(0, 242, 254, 0.12)',
+              borderRadius: '8px',
+              border: '1px solid var(--accent-cyan)',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+            }}
+          >
+            <Filter size={14} />
+            <span>Músculo: {selectedMuscleObj.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedMuscleGroupId(null);
+                setPage(1);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent-cyan)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: 0,
+              }}
+              title="Quitar filtro de músculo"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <select
@@ -426,7 +499,11 @@ export const ExercisesView: React.FC = () => {
               </tr>
             ) : (
               exercises.map((ex) => (
-                <tr key={ex.id}>
+                <tr
+                  key={ex.id}
+                  onMouseEnter={() => setHoveredMuscleGroupId((ex as any).primary_muscle_id || null)}
+                  onMouseLeave={() => setHoveredMuscleGroupId(null)}
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
@@ -729,25 +806,13 @@ export const ExercisesView: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div className="form-group">
-              <label className="form-label">URL de Imagen Demostrativa</label>
-              <input
-                type="text"
-                className="form-input"
-                value={formData.demoImageUrl}
-                onChange={(e) => setFormData({ ...formData, demoImageUrl: e.target.value })}
-                placeholder="https://... o /uploads/..."
-              />
-              {formData.demoImageUrl && (
-                <div style={{ marginTop: '8px' }}>
-                  <img
-                    src={getMediaUrl(formData.demoImageUrl)}
-                    alt="Vista previa"
-                    style={{ width: '120px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}
-                  />
-                </div>
-              )}
-            </div>
+            <ImageUpload
+              value={formData.demoImageUrl}
+              onChange={(url) => setFormData({ ...formData, demoImageUrl: url })}
+              label="Imagen Demostrativa"
+              helperText="Sube la imagen ilustrativa del ejercicio a uploads/ o proporciona una URL."
+              disabled={actionLoading}
+            />
 
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>

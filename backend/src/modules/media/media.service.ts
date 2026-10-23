@@ -64,4 +64,53 @@ export class MediaService {
     await pool.query('DELETE FROM media_assets WHERE id = $1', [id]);
     return { message: 'Archivo eliminado con éxito.' };
   }
+
+  static async deleteFileByUrl(urlOrPath: string) {
+    if (!urlOrPath || typeof urlOrPath !== 'string') {
+      return { success: false, message: 'Ruta no válida.' };
+    }
+
+    const uploadIndex = urlOrPath.indexOf('/uploads/');
+    if (uploadIndex === -1 && !urlOrPath.startsWith('uploads/')) {
+      return { success: false, message: 'El archivo no pertenece al directorio de uploads.' };
+    }
+
+    const relativeSubpath = uploadIndex !== -1 ? urlOrPath.substring(uploadIndex + 9) : urlOrPath.replace(/^uploads\//, '');
+    const filename = path.basename(relativeSubpath);
+    if (!filename) {
+      return { success: false, message: 'Nombre de archivo inválido.' };
+    }
+
+    const uploadDir = path.resolve(__dirname, '../../../uploads');
+    const targetPath = path.resolve(uploadDir, filename);
+
+    if (!targetPath.startsWith(uploadDir)) {
+      throw { statusCode: 400, message: 'Ruta de archivo no permitida.' };
+    }
+
+    let deletedFromDisk = false;
+    if (fs.existsSync(targetPath)) {
+      try {
+        fs.unlinkSync(targetPath);
+        deletedFromDisk = true;
+      } catch (err) {
+        console.error('Error al eliminar archivo del disco:', err);
+      }
+    }
+
+    try {
+      await pool.query(
+        'DELETE FROM media_assets WHERE stored_filename = $1 OR file_path = $2 OR file_path LIKE $3',
+        [filename, `/uploads/${filename}`, `%${filename}`]
+      );
+    } catch (dbErr) {
+      console.error('Error al limpiar registro de media_assets:', dbErr);
+    }
+
+    return {
+      success: true,
+      deletedFromDisk,
+      message: deletedFromDisk ? 'Archivo eliminado del directorio exitosamente.' : 'Registro limpiado (archivo no encontrado en disco).',
+    };
+  }
 }

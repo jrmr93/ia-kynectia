@@ -1,5 +1,6 @@
 import { pool } from '../../database/pool';
 import { recordAuditLog } from '../../utils/logger';
+import { MediaService } from '../media/media.service';
 
 export class MusclesService {
   static async list(search?: string, isActive?: boolean) {
@@ -87,16 +88,29 @@ export class MusclesService {
   static async update(id: number, data: { name?: string; description?: string; imageUrl?: string; isActive?: boolean }, adminId?: number, adminEmail?: string) {
     const existing = await this.getById(id);
 
+    // Si la imagen cambió o se removió y la anterior era un archivo local en uploads, eliminarlo del disco
+    if (data.imageUrl !== undefined && existing.image_url && data.imageUrl !== existing.image_url && existing.image_url.includes('/uploads/')) {
+      await MediaService.deleteFileByUrl(existing.image_url);
+    }
+
     const query = `
       UPDATE muscle_groups
       SET name = COALESCE($1, name),
-          description = COALESCE($2, description),
-          image_url = COALESCE($3, image_url),
+          description = CASE WHEN $6::boolean THEN $2 ELSE description END,
+          image_url = CASE WHEN $7::boolean THEN $3 ELSE image_url END,
           is_active = COALESCE($4, is_active)
       WHERE id = $5 AND deleted_at IS NULL
       RETURNING *;
     `;
-    const values = [data.name ? data.name.trim() : null, data.description, data.imageUrl, data.isActive, id];
+    const values = [
+      data.name ? data.name.trim() : null,
+      data.description !== undefined ? (data.description || null) : null,
+      data.imageUrl !== undefined ? (data.imageUrl || null) : null,
+      data.isActive,
+      id,
+      data.description !== undefined,
+      data.imageUrl !== undefined,
+    ];
 
     const { rows } = await pool.query(query, values);
     const updated = rows[0];
@@ -151,6 +165,11 @@ export class MusclesService {
         statusCode: 400,
         message: `No se puede eliminar el grupo muscular "${existing.name}" porque está asociado a ${depRows[0].count} ejercicio(s). Desactívalo o reasigna los ejercicios primero.`,
       };
+    }
+
+    // Si tiene imagen en uploads, eliminar archivo físico
+    if (existing.image_url && existing.image_url.includes('/uploads/')) {
+      await MediaService.deleteFileByUrl(existing.image_url);
     }
 
     // Soft delete

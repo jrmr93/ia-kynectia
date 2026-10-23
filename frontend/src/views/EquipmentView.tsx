@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest, getMediaUrl } from '../api/client';
 import type { Equipment } from '../types';
 import { useToast } from '../context/ToastContext';
 import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ImageUpload } from '../components/ImageUpload';
 import {
   Dumbbell,
   Plus,
@@ -13,7 +14,6 @@ import {
   RefreshCw,
   Search,
   Activity,
-  Image as ImageIcon,
 } from 'lucide-react';
 
 export const EquipmentView: React.FC = () => {
@@ -27,6 +27,7 @@ export const EquipmentView: React.FC = () => {
   const [editingItem, setEditingItem] = useState<Equipment | null>(null);
   const [deleteItem, setDeleteItem] = useState<Equipment | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [hoveredItemId, setHoveredItemId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -94,7 +95,7 @@ export const EquipmentView: React.FC = () => {
           method: 'POST',
           body: formData,
         });
-        showToast('success', 'Implemento registrado.');
+        showToast('success', 'Implemento registrado con éxito.');
         setIsCreateOpen(false);
       }
       fetchEquipment();
@@ -123,7 +124,7 @@ export const EquipmentView: React.FC = () => {
     setActionLoading(true);
     try {
       await apiRequest(`/equipment/${deleteItem.id}`, { method: 'DELETE' });
-      showToast('success', 'Implemento eliminado correctamente.');
+      showToast('success', 'Implemento e imagen eliminados correctamente.');
       setDeleteItem(null);
       fetchEquipment();
     } catch (err: any) {
@@ -208,100 +209,153 @@ export const EquipmentView: React.FC = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {equipmentList.map((item) => (
-            <div
-              key={item.id}
-              className="card"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                padding: '0',
-              }}
-            >
-              {/* Imagen Ilustrativa */}
+          {equipmentList.map((item) => {
+            const isHovered = hoveredItemId === item.id;
+            const fullImageUrl = item.image_url ? getMediaUrl(item.image_url) : '';
+
+            return (
               <div
+                key={item.id}
+                className="card"
+                onClick={() => handleOpenEdit(item)}
+                onMouseEnter={() => setHoveredItemId(item.id)}
+                onMouseLeave={() => setHoveredItemId(null)}
                 style={{
-                  height: '130px',
-                  width: '100%',
-                  background: item.image_url
-                    ? `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(17,22,34,0.95) 100%), url(${item.image_url}) center/cover`
-                    : 'linear-gradient(135deg, #1e293b, #0f172a)',
                   display: 'flex',
-                  alignItems: 'flex-end',
-                  padding: '16px 20px',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  padding: '0',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  border: isHovered
+                    ? '1.5px solid rgba(0, 242, 254, 0.4)'
+                    : '1px solid var(--border-subtle)',
+                  transform: isHovered ? 'translateY(-3px)' : 'none',
+                  boxShadow: isHovered
+                    ? '0 8px 24px rgba(0, 0, 0, 0.5)'
+                    : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
+                title="Haz clic para editar este implemento"
               >
-                <div>
-                  <span className="badge badge-purple" style={{ marginBottom: '6px', fontSize: '0.68rem' }}>
-                    {getCategoryLabel(item.category)}
-                  </span>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>{item.name}</h3>
-                </div>
-              </div>
-
-              {/* Contenido */}
-              <div style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', lineHeight: '1.5', marginBottom: '16px' }}>
-                  {item.description || 'Sin descripción detallada.'}
-                </p>
-
-                <div>
-                  <div
+                {/* Imagen Ilustrativa */}
+                <div
+                  style={{
+                    height: '130px',
+                    width: '100%',
+                    background: fullImageUrl
+                      ? `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(17,22,34,0.95) 100%), url(${fullImageUrl}) center/cover`
+                      : 'linear-gradient(135deg, #1e293b, #0f172a)',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    padding: '16px 20px',
+                    position: 'relative',
+                  }}
+                >
+                  {/* Badge "Clic para editar" al pasar el cursor */}
+                  <span
                     style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'rgba(10, 13, 20, 0.75)',
+                      backdropFilter: 'blur(4px)',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.7rem',
+                      color: 'var(--accent-cyan)',
+                      border: '1px solid rgba(0, 242, 254, 0.3)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      borderRadius: '8px',
-                      marginBottom: '16px',
-                      border: '1px solid var(--border-subtle)',
+                      gap: '4px',
                     }}
                   >
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Activity size={13} color="var(--accent-cyan)" /> Ejercicios que lo usan:
+                    <Edit2 size={11} /> Clic para editar
+                  </span>
+
+                  <div>
+                    <span className="badge badge-purple" style={{ marginBottom: '6px', fontSize: '0.68rem' }}>
+                      {getCategoryLabel(item.category)}
                     </span>
-                    <span style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                      {item.exercises_count || 0}
-                    </span>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>{item.name}</h3>
                   </div>
+                </div>
 
-                  {/* Acciones */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className={`badge ${item.is_active ? 'badge-success' : 'badge-danger'}`}>
-                      {item.is_active ? 'Activo' : 'Inactivo'}
-                    </span>
+                {/* Contenido */}
+                <div style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', lineHeight: '1.5', marginBottom: '16px' }}>
+                    {item.description || 'Sin descripción detallada.'}
+                  </p>
 
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="btn btn-secondary btn-sm"
-                        title="Editar implemento"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleToggleActive(item)}
-                        className="btn btn-secondary btn-sm"
-                        title={item.is_active ? 'Desactivar' : 'Activar'}
-                        style={{ color: item.is_active ? '#f59e0b' : '#10b981' }}
-                      >
-                        <Power size={14} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteItem(item)}
-                        className="btn btn-danger btn-sm"
-                        title="Eliminar implemento"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                  <div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Activity size={13} color="var(--accent-cyan)" /> Ejercicios que lo usan:
+                      </span>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>
+                        {item.exercises_count || 0}
+                      </span>
+                    </div>
+
+                    {/* Acciones */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span className={`badge ${item.is_active ? 'badge-success' : 'badge-danger'}`}>
+                        {item.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+
+                      <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(item);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          title="Editar implemento"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleActive(item);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          title={item.is_active ? 'Desactivar' : 'Activar'}
+                          style={{ color: item.is_active ? '#f59e0b' : '#10b981' }}
+                        >
+                          <Power size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteItem(item);
+                          }}
+                          className="btn btn-danger btn-sm"
+                          title="Eliminar implemento"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -355,24 +409,14 @@ export const EquipmentView: React.FC = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">URL de Imagen</label>
-            <div style={{ position: 'relative' }}>
-              <ImageIcon
-                size={18}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
-              />
-              <input
-                type="url"
-                className="form-input"
-                style={{ paddingLeft: '40px' }}
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://images.unsplash.com/photo-..."
-              />
-            </div>
-          </div>
+          {/* Subida y Gestión de Imagen en /uploads con eliminación física */}
+          <ImageUpload
+            value={formData.imageUrl}
+            onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+            label="Imagen del Implemento Deportivo"
+            helperText="Sube la fotografía del equipo a uploads/ o proporciona una URL externa. Se eliminará físicamente si la descartas."
+            disabled={actionLoading}
+          />
 
           <div className="form-group">
             <label className="form-label">Descripción y Usos Recomendados</label>
@@ -407,7 +451,7 @@ export const EquipmentView: React.FC = () => {
       <ConfirmDialog
         isOpen={deleteItem !== null}
         title="Eliminar Implemento"
-        message={`¿Estás seguro de eliminar "${deleteItem?.name}"? Esta acción solo se ejecutará si no hay ejercicios dependientes en el sistema.`}
+        message={`¿Estás seguro de eliminar "${deleteItem?.name}"? Se eliminará la imagen asociada de uploads si existe. Esta acción solo se ejecutará si no hay ejercicios dependientes en el sistema.`}
         confirmLabel="Eliminar Definitivamente"
         loading={actionLoading}
         onConfirm={handleDelete}

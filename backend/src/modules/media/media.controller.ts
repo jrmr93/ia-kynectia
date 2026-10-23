@@ -47,4 +47,19 @@ export class MediaController {
       next(error);
     }
   }
+
+  static async deleteByUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { fileUrl, filePath } = req.body;
+      const target = fileUrl || filePath;
+      if (!target) {
+        sendError(res, 'Debe especificar la ruta o URL del archivo a eliminar.', 400);
+        return;
+      }
+      const result = await MediaService.deleteFileByUrl(target);
+      sendSuccess(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

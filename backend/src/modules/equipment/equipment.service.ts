@@ -1,5 +1,6 @@
 import { pool } from '../../database/pool';
 import { recordAuditLog } from '../../utils/logger';
+import { MediaService } from '../media/media.service';
 
 export class EquipmentService {
   static async list(search?: string, category?: string, isActive?: boolean) {
@@ -92,17 +93,31 @@ export class EquipmentService {
   static async update(id: number, data: { name?: string; description?: string; category?: string; imageUrl?: string; isActive?: boolean }, adminId?: number, adminEmail?: string) {
     const existing = await this.getById(id);
 
+    // Si la imagen cambió o se removió y la anterior era un archivo local en uploads, eliminarlo del disco
+    if (data.imageUrl !== undefined && existing.image_url && data.imageUrl !== existing.image_url && existing.image_url.includes('/uploads/')) {
+      await MediaService.deleteFileByUrl(existing.image_url);
+    }
+
     const query = `
       UPDATE equipment
       SET name = COALESCE($1, name),
-          description = COALESCE($2, description),
+          description = CASE WHEN $7::boolean THEN $2 ELSE description END,
           category = COALESCE($3, category),
-          image_url = COALESCE($4, image_url),
+          image_url = CASE WHEN $8::boolean THEN $4 ELSE image_url END,
           is_active = COALESCE($5, is_active)
       WHERE id = $6 AND deleted_at IS NULL
       RETURNING *;
     `;
-    const values = [data.name ? data.name.trim() : null, data.description, data.category, data.imageUrl, data.isActive, id];
+    const values = [
+      data.name ? data.name.trim() : null,
+      data.description !== undefined ? (data.description || null) : null,
+      data.category,
+      data.imageUrl !== undefined ? (data.imageUrl || null) : null,
+      data.isActive,
+      id,
+      data.description !== undefined,
+      data.imageUrl !== undefined,
+    ];
 
     const { rows } = await pool.query(query, values);
     const updated = rows[0];
@@ -156,6 +171,11 @@ export class EquipmentService {
         statusCode: 400,
         message: `No se puede eliminar el implemento "${existing.name}" porque se utiliza en ${depRows[0].count} ejercicio(s). Desactívalo en su lugar.`,
       };
+    }
+
+    // Si tiene imagen en uploads, eliminar archivo físico
+    if (existing.image_url && existing.image_url.includes('/uploads/')) {
+      await MediaService.deleteFileByUrl(existing.image_url);
     }
 
     await pool.query('UPDATE equipment SET deleted_at = NOW(), is_active = FALSE WHERE id = $1;', [id]);

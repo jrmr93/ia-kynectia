@@ -53,6 +53,7 @@ router.use(requireAuth);
 
 router.get('/', MediaController.list);
 router.post('/upload', upload.single('file'), MediaController.upload);
+router.post('/delete-by-path', MediaController.deleteByUrl);
 router.delete('/:id', MediaController.delete);
 
 export default router;
