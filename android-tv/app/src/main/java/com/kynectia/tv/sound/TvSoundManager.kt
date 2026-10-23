@@ -69,6 +69,15 @@ object TvSoundManager {
         }
     }
 
+    fun playConnectedSound() {
+        if (!isSoundEnabled) return
+        try {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP2, 350)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error reproduciendo sonido de conexión: ${e.message}")
+        }
+    }
+
     fun toggleSound(): Boolean {
         isSoundEnabled = !isSoundEnabled
         if (isSoundEnabled) playCountdownBeep()

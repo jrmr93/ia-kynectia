@@ -50,5 +50,11 @@ interface KynectiaApiService {
 
     @POST("tv/commands/consume/{sessionId}")
     suspend fun consumeTvCommands(@Path("sessionId") sessionId: String): ApiResponse<TvConsumeCommandsResponse>
+
+    @POST("tv/rotate/{sessionId}")
+    suspend fun rotateTvScreen(
+        @Path("sessionId") sessionId: String,
+        @Body body: TvRotateRequest = TvRotateRequest()
+    ): ApiResponse<TvRotateResponse>
 }
 

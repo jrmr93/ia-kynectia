@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -33,6 +34,7 @@ fun WorkoutsScreen(
     viewModel: WorkoutsViewModel,
     onStartWorkout: (Int) -> Unit
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val isTvConnected by TvCastManager.isTvConnected.collectAsState()
     var showTvCastDialog by remember { mutableStateOf(false) }
@@ -64,6 +66,16 @@ fun WorkoutsScreen(
                     }
                 },
                 actions = {
+                    if (isTvConnected) {
+                        IconButton(onClick = { TvCastManager.rotateTvScreen(context) }) {
+                            Icon(
+                                Icons.Default.ScreenRotation,
+                                contentDescription = "Girar Pantalla TV",
+                                tint = KynectiaLime
+                            )
+                        }
+                    }
+
                     IconButton(onClick = { showTvCastDialog = true }) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(

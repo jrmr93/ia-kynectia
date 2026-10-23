@@ -39,6 +39,7 @@ fun WorkoutPlayerScreen(
     onWorkoutFinished: (WorkoutSummaryResult) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val isTvConnected by TvCastManager.isTvConnected.collectAsState()
     var showTvCastDialog by remember { mutableStateOf(false) }
@@ -88,6 +89,17 @@ fun WorkoutPlayerScreen(
                     }
                 },
                 actions = {
+                    // Botón rápido para Girar Pantalla TV si está conectada
+                    if (isTvConnected) {
+                        IconButton(onClick = { TvCastManager.rotateTvScreen(context) }) {
+                            Icon(
+                                Icons.Default.ScreenRotation,
+                                contentDescription = "Girar Pantalla TV",
+                                tint = KynectiaLime
+                            )
+                        }
+                    }
+
                     // Botón para Transmitir a Pantalla Android TV
                     IconButton(onClick = { showTvCastDialog = true }) {
                         Box(contentAlignment = Alignment.Center) {

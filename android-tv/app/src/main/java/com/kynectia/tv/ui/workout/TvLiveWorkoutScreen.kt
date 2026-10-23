@@ -116,7 +116,7 @@ private fun TvLiveWorkoutHorizontalContent(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .padding(horizontal = 36.dp, vertical = 22.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         // TOP HEADER BAR
         Row(
@@ -448,7 +448,7 @@ private fun TvLiveWorkoutVerticalContent(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -476,7 +476,7 @@ private fun TvLiveWorkoutVerticalContent(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         text = state.routineName.ifBlank { "RUTINA EN VIVO" }.uppercase(),
@@ -504,7 +504,7 @@ private fun TvLiveWorkoutVerticalContent(
                     modifier = Modifier.padding(end = 6.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -513,7 +513,7 @@ private fun TvLiveWorkoutVerticalContent(
                                 .clip(CircleShape)
                                 .background(if (state.isPaused) KynectiaOrange else KynectiaLime.copy(alpha = pulseAlpha))
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = if (state.isPaused) "PAUSA" else "VIVO",
                             style = MaterialTheme.typography.labelSmall,
@@ -532,7 +532,7 @@ private fun TvLiveWorkoutVerticalContent(
                     val secs = state.elapsedWorkoutSeconds % 60
                     Text(
                         text = String.format(Locale.US, "%02d:%02d", mins, secs),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Black,
                         color = TextPrimary
@@ -541,21 +541,21 @@ private fun TvLiveWorkoutVerticalContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // 2. TARJETA PRINCIPAL DEL EJERCICIO - IMAGEN GRANDE Y VISIBLE AL 100% QUE DOMINA LA PANTALLA
+        // 2. TARJETA PRINCIPAL DEL EJERCICIO - PANEL DE VIDEO AGRANDADO PARA VISUALIZACIÓN ALTO COMPLETO
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(2.2f),
-            shape = RoundedCornerShape(20.dp),
+                .weight(4.8f),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             border = androidx.compose.foundation.BorderStroke(1.5.dp, DarkBorder)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Fila superior de badges
@@ -565,17 +565,17 @@ private fun TvLiveWorkoutVerticalContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = DarkSurfaceVariant
                     ) {
                         Text(
                             text = "EJERCICIO ${state.currentExerciseIndex + 1} DE ${state.totalExercises.coerceAtLeast(1)}",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Black,
                             color = TextSecondary,
                             letterSpacing = 1.sp,
-                            fontSize = 11.sp
+                            fontSize = 10.sp
                         )
                     }
                     Text(
@@ -586,26 +586,26 @@ private fun TvLiveWorkoutVerticalContent(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = state.exerciseName.ifBlank { "Preparando ejercicio..." },
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
-                // IMAGEN DEL EJERCICIO - OCUPA EL ESPACIO PRINCIPAL DE LA PANTALLA
+                // IMAGEN / VIDEO DEL EJERCICIO - OCUPA EL ESPACIO PRINCIPAL AGRANDADO Y LLENA EL RECUADRO COMPLETO
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(DarkSurfaceVariant),
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
                     val resolvedVideoUrl = TvApiClient.resolveMediaUrl(state.demoVideoUrl)
@@ -615,7 +615,7 @@ private fun TvLiveWorkoutVerticalContent(
                         TvExerciseVideoPlayer(
                             videoUrl = resolvedVideoUrl,
                             modifier = Modifier.fillMaxSize(),
-                            cornerRadius = 16.dp
+                            cornerRadius = 8.dp
                         )
                     } else if (!resolvedImageUrl.isNullOrBlank()) {
                         AsyncImage(
@@ -633,9 +633,9 @@ private fun TvLiveWorkoutVerticalContent(
                                 Icons.Default.FitnessCenter,
                                 contentDescription = null,
                                 tint = KynectiaLime.copy(alpha = 0.6f),
-                                modifier = Modifier.size(60.dp)
+                                modifier = Modifier.size(50.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Demostración del Ejercicio",
                                 style = MaterialTheme.typography.titleMedium,
@@ -646,7 +646,7 @@ private fun TvLiveWorkoutVerticalContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
                 // Barra de progreso de rutina
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -658,7 +658,7 @@ private fun TvLiveWorkoutVerticalContent(
                             text = "Progreso de rutina",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
-                            fontSize = 11.sp
+                            fontSize = 10.sp
                         )
                         val progressPct = if (state.totalExercises > 0) {
                             ((state.currentExerciseIndex.toFloat() / state.totalExercises) * 100).toInt()
@@ -668,10 +668,10 @@ private fun TvLiveWorkoutVerticalContent(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = KynectiaLime,
-                            fontSize = 11.sp
+                            fontSize = 10.sp
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     LinearProgressIndicator(
                         progress = {
                             if (state.totalExercises > 0) {
@@ -680,8 +680,8 @@ private fun TvLiveWorkoutVerticalContent(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
                         color = KynectiaLime,
                         trackColor = DarkSurfaceVariant
                     )
@@ -689,14 +689,14 @@ private fun TvLiveWorkoutVerticalContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // 3. TARJETA COMPACTA DE DESCANSO O MÉTRICAS ACTIVAS (DISTRIBUCIÓN 100% HORIZONTAL)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1.0f),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (state.isResting) Color(0xFF0F1A08) else DarkSurface
             ),
@@ -722,7 +722,7 @@ private fun TvLiveWorkoutVerticalContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // 4. BARRA DE CONTROL REMOTO COMPACTA
         TvRemoteControlBar(

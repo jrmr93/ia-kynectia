@@ -1,6 +1,8 @@
 package com.kynectia.tv.ui
 
 import android.net.Uri
+import android.view.LayoutInflater
+import com.kynectia.tv.R
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
@@ -19,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -31,7 +34,8 @@ import androidx.media3.ui.PlayerView
 fun TvExerciseVideoPlayer(
     videoUrl: String,
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 16.dp
+    cornerRadius: Dp = 10.dp,
+    resizeMode: Int = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 ) {
     val context = LocalContext.current
 
@@ -40,6 +44,7 @@ fun TvExerciseVideoPlayer(
             val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
             setMediaItem(mediaItem)
             repeatMode = Player.REPEAT_MODE_ALL
+            videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
             volume = 0f // Silenciado para priorizar alertas y efectos sonoros del temporizador
             playWhenReady = true
             addListener(object : Player.Listener {
@@ -69,10 +74,10 @@ fun TvExerciseVideoPlayer(
     ) {
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
+                (LayoutInflater.from(ctx).inflate(R.layout.tv_exercise_player_view, null) as PlayerView).apply {
                     player = exoPlayer
                     useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    this.resizeMode = resizeMode
                     setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -82,6 +87,7 @@ fun TvExerciseVideoPlayer(
             },
             update = { playerView ->
                 playerView.player = exoPlayer
+                playerView.resizeMode = resizeMode
             },
             modifier = Modifier.fillMaxSize()
         )

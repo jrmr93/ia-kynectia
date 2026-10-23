@@ -24,7 +24,9 @@ data class TvSessionStatus(
     val pinCode: String,
     val isPaired: Boolean = false,
     val pairedAthleteName: String? = null,
-    val state: TvLiveWorkoutState? = null
+    val state: TvLiveWorkoutState? = null,
+    val rotateCount: Int = 0,
+    val orientation: String? = null
 )
 
 @Serializable

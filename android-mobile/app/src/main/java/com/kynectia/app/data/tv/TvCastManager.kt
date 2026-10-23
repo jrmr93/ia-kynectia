@@ -5,6 +5,7 @@ import android.util.Log
 import com.kynectia.app.data.api.ApiClient
 import com.kynectia.app.data.model.TvLiveWorkoutPayload
 import com.kynectia.app.data.model.TvPairRequest
+import com.kynectia.app.data.model.TvRotateRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -178,6 +179,23 @@ object TvCastManager {
             }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    fun rotateTvScreen(context: Context? = null, orientation: String? = null) {
+        val targetContext = context?.applicationContext ?: appContext ?: return
+        val sessionId = _pairedSessionId.value ?: return
+        if (!_isTvConnected.value) return
+
+        scope.launch {
+            try {
+                ApiClient.getService(targetContext).rotateTvScreen(
+                    sessionId = sessionId,
+                    body = TvRotateRequest(orientation = orientation)
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Error rotando pantalla de TV: ${e.message}")
+            }
         }
     }
 }

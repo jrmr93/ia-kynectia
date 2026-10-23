@@ -191,3 +191,15 @@ data class TvConsumeCommandsResponse(
     val commands: List<TvRemoteCommandItem> = emptyList()
 )
 
+@Serializable
+data class TvRotateRequest(
+    val orientation: String? = null
+)
+
+@Serializable
+data class TvRotateResponse(
+    val rotateCount: Int = 0,
+    val orientation: String? = null
+)
+
+

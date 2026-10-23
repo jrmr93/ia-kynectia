@@ -45,6 +45,8 @@ interface TvSession {
   pairedAthleteEmail?: string;
   currentState?: TvWorkoutState;
   pendingCommands?: TvRemoteCommand[];
+  rotateCount?: number;
+  orientation?: string;
 }
 
 
@@ -179,6 +181,20 @@ export class TvService {
     session.pendingCommands = [];
     return commands;
   }
+
+  static rotateScreen(sessionId: string, orientation?: string): { rotateCount: number; orientation?: string } | null {
+    const session = tvSessions.get(sessionId);
+    if (!session || session.expiresAt < Date.now()) return null;
+
+    session.rotateCount = (session.rotateCount || 0) + 1;
+    if (orientation) {
+      session.orientation = orientation;
+    }
+    return {
+      rotateCount: session.rotateCount,
+      orientation: session.orientation,
+    };
+  }
 }
 
 
@@ -280,6 +296,8 @@ router.get('/session/:sessionId', (req: Request, res: Response) => {
     pairedAthleteName: session.pairedAthleteName,
     state: session.currentState || null,
     pendingCommands: session.pendingCommands || [],
+    rotateCount: session.rotateCount || 0,
+    orientation: session.orientation || null,
   }, 'Estado actual de la sesión de TV obtenido.');
 });
 
@@ -305,7 +323,19 @@ router.post('/commands/consume/:sessionId', (req: Request, res: Response) => {
   sendSuccess(res, { commands }, 'Comandos consumidos.');
 });
 
-// 7. Desconectar sesión
+// 7. Girar pantalla de la TV desde el móvil
+router.post('/rotate/:sessionId', (req: Request, res: Response) => {
+  const sessionId = req.params.sessionId as string;
+  const orientation = req.body?.orientation;
+  const result = TvService.rotateScreen(sessionId, orientation);
+  if (!result) {
+    sendError(res, 'Sesión de TV no encontrada o inactiva.', 404);
+    return;
+  }
+  sendSuccess(res, result, 'Solicitud de giro de pantalla enviada a la TV.');
+});
+
+// 8. Desconectar sesión
 router.post('/disconnect/:sessionId', (req: Request, res: Response) => {
   TvService.disconnect(req.params.sessionId as string);
   sendSuccess(res, { disconnected: true }, 'Sesión de TV finalizada.');

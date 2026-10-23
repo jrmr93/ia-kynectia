@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import com.kynectia.tv.ui.TvDisplayOrientation
 import com.kynectia.tv.ui.TvUiState
 import com.kynectia.tv.ui.TvViewModel
 import com.kynectia.tv.ui.pairing.TvPairingScreen
+import com.kynectia.tv.ui.connected.TvConnectedScreen
 import com.kynectia.tv.ui.summary.TvSummaryScreen
 import com.kynectia.tv.ui.workout.TvLiveWorkoutScreen
 
@@ -56,10 +58,10 @@ class MainActivity : ComponentActivity() {
                             orientationMode == TvDisplayOrientation.VERTICAL_270
 
                     val contentModifier = if (isRotatedSoftware) {
-                        // Invertimos las dimensiones para que el layout vertical 9:16 ocupe el canvas rotado al 100%
+                        // Invertimos las dimensiones desvinculándolas de las restricciones del padre para que el layout vertical 9:16 ocupe el ancho y alto del TV al 100%
                         Modifier
-                            .size(width = maxHeight, height = maxWidth)
                             .align(Alignment.Center)
+                            .requiredSize(width = maxHeight, height = maxWidth)
                             .graphicsLayer {
                                 rotationZ = orientationMode.rotationDegrees
                             }
@@ -86,6 +88,17 @@ class MainActivity : ComponentActivity() {
                                         onRefreshCode = { viewModel.createTvSession() },
                                         onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
                                         onToggleSound = { viewModel.toggleSound() }
+                                    )
+                                }
+                                is TvUiState.Connected -> {
+                                    TvConnectedScreen(
+                                        athleteName = state.athleteName,
+                                        pinCode = state.pinCode,
+                                        orientationMode = orientationMode,
+                                        isSoundEnabled = isSoundEnabled,
+                                        onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
+                                        onToggleSound = { viewModel.toggleSound() },
+                                        onDisconnect = { viewModel.disconnect() }
                                     )
                                 }
                                 is TvUiState.LiveWorkout -> {

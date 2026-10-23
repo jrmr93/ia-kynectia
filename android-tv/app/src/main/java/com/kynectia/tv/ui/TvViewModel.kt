@@ -33,6 +33,12 @@ sealed interface TvUiState {
         val errorMessage: String? = null
     ) : TvUiState
 
+    data class Connected(
+        val sessionId: String,
+        val pinCode: String,
+        val athleteName: String
+    ) : TvUiState
+
     data class LiveWorkout(
         val sessionId: String,
         val athleteName: String,
@@ -64,6 +70,8 @@ class TvViewModel : ViewModel() {
     private var pollingJob: Job? = null
     private var localTickerJob: Job? = null
     private var lastFinishedCelebrated: Boolean = false
+    private var lastAppliedRotateCount: Int = -1
+    private var hasCelebratedConnection: Boolean = false
 
     init {
         createTvSession()
@@ -96,6 +104,8 @@ class TvViewModel : ViewModel() {
         pollingJob?.cancel()
         localTickerJob?.cancel()
         lastFinishedCelebrated = false
+        lastAppliedRotateCount = -1
+        hasCelebratedConnection = false
         _uiState.value = TvUiState.Loading
 
         viewModelScope.launch {
@@ -133,7 +143,26 @@ class TvViewModel : ViewModel() {
                         val status = res.data
                         val athlete = status.pairedAthleteName ?: "Atleta"
 
+                        // Sincronizar giro de pantalla si se solicitó remotamente desde el móvil
+                        if (lastAppliedRotateCount == -1) {
+                            lastAppliedRotateCount = status.rotateCount
+                        } else if (status.rotateCount > lastAppliedRotateCount) {
+                            val diff = status.rotateCount - lastAppliedRotateCount
+                            lastAppliedRotateCount = status.rotateCount
+                            if (status.orientation != null) {
+                                val target = TvDisplayOrientation.entries.find { it.name == status.orientation }
+                                if (target != null) {
+                                    setOrientation(target)
+                                } else {
+                                    repeat(diff) { cycleOrientation() }
+                                }
+                            } else {
+                                repeat(diff) { cycleOrientation() }
+                            }
+                        }
+
                         if (status.isPaired && status.state != null) {
+                            hasCelebratedConnection = true
                             val liveState = status.state
 
                             // Reproducir efectos de sonido correspondientes
@@ -163,7 +192,19 @@ class TvViewModel : ViewModel() {
                                     state = liveState
                                 )
                             }
+                        } else if (status.isPaired && status.state == null) {
+                            // Pantalla vinculada esperando inicio del entrenamiento desde la app móvil
+                            if (!hasCelebratedConnection) {
+                                hasCelebratedConnection = true
+                                TvSoundManager.playConnectedSound()
+                            }
+                            _uiState.value = TvUiState.Connected(
+                                sessionId = sessionId,
+                                pinCode = status.pinCode,
+                                athleteName = athlete
+                            )
                         } else if (!status.isPaired) {
+                            hasCelebratedConnection = false
                             val current = _uiState.value
                             if (current !is TvUiState.Pairing) {
                                 _uiState.value = TvUiState.Pairing(

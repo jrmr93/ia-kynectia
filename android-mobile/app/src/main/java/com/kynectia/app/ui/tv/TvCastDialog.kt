@@ -164,7 +164,44 @@ fun TvCastDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botón para rotar la pantalla de Android TV remotamente desde el móvil
+                    Button(
+                        onClick = {
+                            TvCastManager.rotateTvScreen(context)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = KynectiaLime,
+                            contentColor = DarkBackground
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.ScreenRotation,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = DarkBackground
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Girar Pantalla TV",
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Alterna entre orientación horizontal (16:9) y vertical (9:16) en tu pantalla Android TV",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     OutlinedButton(
                         onClick = {
