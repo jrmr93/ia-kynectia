@@ -1,14 +1,13 @@
 package com.kynectia.tv.ui.workout
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -38,6 +37,15 @@ import com.kynectia.tv.theme.*
 import com.kynectia.tv.ui.TvDisplayOrientation
 import com.kynectia.tv.ui.TvExerciseVideoPlayer
 import java.util.Locale
+
+/**
+ * Función auxiliar para cálculo de 1RM según fórmula de Epley: Peso * (1 + Reps / 30)
+ */
+fun calculateOneRm(weightKg: Double, reps: Int): Int {
+    if (weightKg <= 0.0 || reps <= 0) return 0
+    if (reps == 1) return weightKg.toInt()
+    return (weightKg * (1.0 + reps / 30.0)).toInt()
+}
 
 @Composable
 fun TvLiveWorkoutScreen(
@@ -112,6 +120,10 @@ private fun TvLiveWorkoutHorizontalContent(
         label = "pulseAlpha"
     )
 
+    val calculatedOneRm = remember(state.weightKg, state.reps) {
+        calculateOneRm(state.weightKg, state.reps)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -122,7 +134,7 @@ private fun TvLiveWorkoutHorizontalContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -162,8 +174,36 @@ private fun TvLiveWorkoutHorizontalContent(
                 }
             }
 
-            // Indicador de estado y controles rápidos
+            // Indicador de estado, 1RM en cabecera y cronómetro total
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Badge 1RM en la barra superior
+                if (calculatedOneRm > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF101B2B),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF203248)),
+                        modifier = Modifier.padding(end = 10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "1RM: ",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary
+                            )
+                            Text(
+                                text = "$calculatedOneRm kg",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = KynectiaBlueLight
+                            )
+                        }
+                    }
+                }
+
                 // Live Badge
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -227,9 +267,9 @@ private fun TvLiveWorkoutHorizontalContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // LEFT COLUMN: Ejercicio actual e Imagen
+            // LEFT COLUMN: Ejercicio actual, Video/Imagen y Barra de Segmentos
             Card(
                 modifier = Modifier
                     .weight(1.1f)
@@ -241,9 +281,10 @@ private fun TvLiveWorkoutHorizontalContent(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Cabecera del ejercicio con orden y 1RM
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,12 +304,29 @@ private fun TvLiveWorkoutHorizontalContent(
                             )
                         }
 
-                        Text(
-                            text = "SERIES: ${state.totalSets}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextMuted
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "SERIES: ${state.totalSets}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextMuted
+                            )
+                            if (calculatedOneRm > 0) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF101B2B)
+                                ) {
+                                    Text(
+                                        text = "1RM: $calculatedOneRm kg",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = KynectiaBlueLight
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Text(
@@ -278,9 +336,10 @@ private fun TvLiveWorkoutHorizontalContent(
                         color = TextPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 6.dp)
                     )
 
+                    // Video / Imagen
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -323,48 +382,39 @@ private fun TvLiveWorkoutHorizontalContent(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Progreso de rutina
+                    // INDICADOR DE SEGMENTOS DE LA RUTINA (Como en móvil)
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Progreso de rutina",
+                                text = "Progreso de ejercicios",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextMuted
                             )
                             val progressPct = if (state.totalExercises > 0) {
-                                ((state.currentExerciseIndex.toFloat() / state.totalExercises) * 100).toInt()
+                                (((state.currentExerciseIndex + 1).toFloat() / state.totalExercises) * 100).toInt()
                             } else 0
                             Text(
                                 text = "$progressPct%",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = KynectiaLime
+                                color = KynectiaBlueLight
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = {
-                                if (state.totalExercises > 0) {
-                                    (state.currentExerciseIndex.toFloat() / state.totalExercises).coerceIn(0f, 1f)
-                                } else 0f
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = KynectiaLime,
-                            trackColor = DarkSurfaceVariant
+                        TvExerciseSegmentsIndicator(
+                            totalExercises = state.totalExercises,
+                            currentIndex = state.currentExerciseIndex
                         )
                     }
                 }
             }
 
-            // RIGHT COLUMN: Modo Descanso o Métricas
+            // RIGHT COLUMN: Modo Descanso o Métricas Activas + Tabla de Series
             Card(
                 modifier = Modifier
                     .weight(1.0f)
@@ -383,20 +433,23 @@ private fun TvLiveWorkoutHorizontalContent(
                         restRemaining = state.restSecondsRemaining,
                         restTotal = state.restSecondsTotal,
                         nextSet = state.currentSetNumber,
-                        totalSets = state.totalSets
+                        totalSets = state.totalSets,
+                        weightKg = state.weightKg,
+                        reps = state.reps
                     )
                 } else {
                     TvActiveSetContent(
                         currentSet = state.currentSetNumber,
                         totalSets = state.totalSets,
                         reps = state.reps,
-                        weightKg = state.weightKg
+                        weightKg = state.weightKg,
+                        oneRm = calculatedOneRm
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // BARRA INFERIOR DE CONTROL REMOTO Y ROTACIÓN
         TvRemoteControlBar(
@@ -417,7 +470,6 @@ private fun TvLiveWorkoutHorizontalContent(
 
 /**
  * DISEÑO VERTICAL (Adaptado para pantallas montadas verticalmente 9:16 y smart mirrors)
- * Ocupa el 100% del alto y ancho con tipografía y proporciones maximizadas.
  */
 @Composable
 private fun TvLiveWorkoutVerticalContent(
@@ -443,6 +495,10 @@ private fun TvLiveWorkoutVerticalContent(
         ),
         label = "pulseAlpha"
     )
+
+    val calculatedOneRm = remember(state.weightKg, state.reps) {
+        calculateOneRm(state.weightKg, state.reps)
+    }
 
     Column(
         modifier = Modifier
@@ -497,6 +553,23 @@ private fun TvLiveWorkoutVerticalContent(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (calculatedOneRm > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF101B2B),
+                        modifier = Modifier.padding(end = 6.dp)
+                    ) {
+                        Text(
+                            text = "1RM: $calculatedOneRm kg",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = KynectiaBlueLight,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
+
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = DarkSurface,
@@ -543,22 +616,21 @@ private fun TvLiveWorkoutVerticalContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 2. TARJETA PRINCIPAL DEL EJERCICIO - PANEL DE VIDEO AGRANDADO PARA VISUALIZACIÓN ALTO COMPLETO
+        // 2. TARJETA PRINCIPAL DEL EJERCICIO CON INDICADOR DE SEGMENTOS
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(4.8f),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, DarkBorder)
+            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                    .padding(6.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Fila superior de badges
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -574,19 +646,18 @@ private fun TvLiveWorkoutVerticalContent(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Black,
                             color = TextSecondary,
-                            letterSpacing = 1.sp,
-                            fontSize = 10.sp
+                            fontSize = 9.sp
                         )
                     }
+
                     Text(
-                        text = "SERIE ${state.currentSetNumber} DE ${state.totalSets}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = KynectiaLime
+                        text = "SERIES: ${state.totalSets}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextMuted,
+                        fontSize = 9.sp
                     )
                 }
-
-                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = state.exerciseName.ifBlank { "Preparando ejercicio..." },
@@ -599,7 +670,7 @@ private fun TvLiveWorkoutVerticalContent(
 
                 Spacer(modifier = Modifier.height(3.dp))
 
-                // IMAGEN / VIDEO DEL EJERCICIO - OCUPA EL ESPACIO PRINCIPAL AGRANDADO Y LLENA EL RECUADRO COMPLETO
+                // IMAGEN / VIDEO DEL EJERCICIO
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -646,56 +717,23 @@ private fun TvLiveWorkoutVerticalContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                // Barra de progreso de rutina
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Progreso de rutina",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextMuted,
-                            fontSize = 10.sp
-                        )
-                        val progressPct = if (state.totalExercises > 0) {
-                            ((state.currentExerciseIndex.toFloat() / state.totalExercises) * 100).toInt()
-                        } else 0
-                        Text(
-                            text = "$progressPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = KynectiaLime,
-                            fontSize = 10.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    LinearProgressIndicator(
-                        progress = {
-                            if (state.totalExercises > 0) {
-                                (state.currentExerciseIndex.toFloat() / state.totalExercises).coerceIn(0f, 1f)
-                            } else 0f
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = KynectiaLime,
-                        trackColor = DarkSurfaceVariant
-                    )
-                }
+                // Segmentos de progreso de rutina
+                TvExerciseSegmentsIndicator(
+                    totalExercises = state.totalExercises,
+                    currentIndex = state.currentExerciseIndex
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 3. TARJETA COMPACTA DE DESCANSO O MÉTRICAS ACTIVAS (DISTRIBUCIÓN 100% HORIZONTAL)
+        // 3. TARJETA COMPACTA DE DESCANSO O MÉTRICAS ACTIVAS
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1.0f),
+                .weight(1.3f),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (state.isResting) Color(0xFF0F1A08) else DarkSurface
@@ -717,7 +755,8 @@ private fun TvLiveWorkoutVerticalContent(
                     currentSet = state.currentSetNumber,
                     totalSets = state.totalSets,
                     reps = state.reps,
-                    weightKg = state.weightKg
+                    weightKg = state.weightKg,
+                    oneRm = calculatedOneRm
                 )
             }
         }
@@ -742,164 +781,310 @@ private fun TvLiveWorkoutVerticalContent(
     }
 }
 
+/**
+ * COMPONENTE: Barra de segmentos horizontales de ejercicios
+ */
 @Composable
-private fun TvActiveSetVerticalContent(
+fun TvExerciseSegmentsIndicator(
+    totalExercises: Int,
+    currentIndex: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = maxOf(1, totalExercises)
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 0 until total) {
+            val isActive = i == currentIndex
+            val isCompleted = i < currentIndex
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        when {
+                            isActive -> KynectiaBlueLight
+                            isCompleted -> KynectiaLime
+                            else -> Color(0x35FFFFFF)
+                        }
+                    )
+            )
+        }
+    }
+}
+
+/**
+ * COMPONENTE: Visualizador de series del ejercicio
+ */
+@Composable
+fun TvSetsTracker(
+    totalSets: Int,
+    currentSet: Int,
+    weightKg: Double,
+    reps: Int,
+    isResting: Boolean,
+    isCompact: Boolean = false
+) {
+    val count = maxOf(1, totalSets)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
+    ) {
+        for (s in 1..count) {
+            val isCompleted = if (isResting) s <= currentSet else s < currentSet
+            val isCurrent = if (isResting) s == currentSet + 1 else s == currentSet
+
+            val borderColor = when {
+                isCurrent -> KynectiaBlueLight
+                isCompleted -> KynectiaLime.copy(alpha = 0.5f)
+                else -> DarkBorder
+            }
+            val bgColor = when {
+                isCurrent -> Color(0xFF101B29)
+                isCompleted -> Color(0xFF12200E)
+                else -> DarkSurfaceVariant
+            }
+
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(8.dp),
+                color = bgColor,
+                border = androidx.compose.foundation.BorderStroke(if (isCurrent) 1.5.dp else 1.dp, borderColor)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = if (isCompact) 4.dp else 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "S$s",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isCurrent) KynectiaBlueLight else if (isCompleted) KynectiaLime else TextSecondary,
+                            fontSize = if (isCompact) 10.sp else 11.sp
+                        )
+                        if (isCompleted) {
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = KynectiaLime,
+                                modifier = Modifier.size(if (isCompact) 10.dp else 12.dp)
+                            )
+                        }
+                    }
+                    if (!isCompact) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (weightKg > 0) "${weightKg.toInt()}k" else "-",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isCurrent) TextPrimary else TextMuted,
+                            fontSize = 10.sp
+                        )
+                        Text(
+                            text = "$reps r",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isCurrent) KynectiaBlueLight else TextMuted,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * CONTENIDO DE SERIE ACTIVA - HORIZONTAL
+ */
+@Composable
+private fun TvActiveSetContent(
     currentSet: Int,
     totalSets: Int,
     reps: Int,
-    weightKg: Double
+    weightKg: Double,
+    oneRm: Int
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // SERIE ACTUAL
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = DarkSurfaceVariant,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // 1. SERIE
-            Card(
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                shape = RoundedCornerShape(14.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+                Column {
                     Text(
-                        text = "SERIE",
+                        text = "SERIE ACTUAL",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = TextSecondary,
-                        fontSize = 11.sp
+                        letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "$currentSet/$totalSets",
+                        text = "$currentSet / $totalSets",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Black,
                         color = KynectiaLime
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "en curso",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = 10.sp
-                    )
+                }
+
+                // 1RM Estimado Badge
+                if (oneRm > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF101B2B),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF22344A))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "1RM ESTIMADO",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary
+                            )
+                            Text(
+                                text = "$oneRm kg",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = KynectiaBlueLight
+                            )
+                        }
+                    }
                 }
             }
+        }
 
-            // 2. REPETICIONES
+        // CARDS REPS Y CARGA
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+                modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "REPS",
+                        text = "REPETICIONES",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = TextSecondary,
-                        fontSize = 11.sp
+                        color = TextSecondary
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "$reps",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
                         color = TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "objetivo",
+                        text = "reps objetivo",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 10.sp
+                        fontSize = 11.sp
                     )
                 }
             }
 
-            // 3. CARGA
             Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+                modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "CARGA",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = TextSecondary,
-                        fontSize = 11.sp
+                        color = TextSecondary
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (weightKg > 0) String.format(Locale.US, "%.1f", weightKg) else "0.0",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Black,
                         color = KynectiaOrange
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "kg",
+                        text = "kilogramos",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 10.sp
+                        fontSize = 11.sp
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // TABLA DE SERIES DEL EJERCICIO (Visual Tracker)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Seguimiento de series",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            TvSetsTracker(
+                totalSets = totalSets,
+                currentSet = currentSet,
+                weightKg = weightKg,
+                reps = reps,
+                isResting = false
+            )
+        }
 
+        // BANNER DE CADENCIA & TEMPO
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = Color(0xFF131D27),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Bolt,
+                    Icons.Default.Timelapse,
                     contentDescription = null,
-                    tint = KynectiaLime,
-                    modifier = Modifier.size(16.dp)
+                    tint = KynectiaBlueLight,
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Controla cada repetición con técnica estricta y rango completo.",
+                    text = "Cadencia 3-1-1-0: 3s bajada excéntrica • 1s pausa isométrica • 1s empuje concéntrico.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                     fontSize = 11.sp,
@@ -911,6 +1096,287 @@ private fun TvActiveSetVerticalContent(
     }
 }
 
+/**
+ * CONTENIDO DE SERIE ACTIVA - VERTICAL
+ */
+@Composable
+private fun TvActiveSetVerticalContent(
+    currentSet: Int,
+    totalSets: Int,
+    reps: Int,
+    weightKg: Double,
+    oneRm: Int
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 1. SERIE
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "SERIE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "$currentSet/$totalSets",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = KynectiaLime
+                    )
+                }
+            }
+
+            // 2. REPS
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "REPS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "$reps",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = TextPrimary
+                    )
+                }
+            }
+
+            // 3. CARGA
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "CARGA",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = if (weightKg > 0) "${weightKg.toInt()}k" else "0k",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = KynectiaOrange
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Seguimiento compacto de series
+        TvSetsTracker(
+            totalSets = totalSets,
+            currentSet = currentSet,
+            weightKg = weightKg,
+            reps = reps,
+            isResting = false,
+            isCompact = true
+        )
+    }
+}
+
+/**
+ * CONTENIDO DE MODO DESCANSO - HORIZONTAL
+ */
+@Composable
+private fun TvRestModeContent(
+    restRemaining: Int,
+    restTotal: Int,
+    nextSet: Int,
+    totalSets: Int,
+    weightKg: Double,
+    reps: Int
+) {
+    val progress = if (restTotal > 0) {
+        (restRemaining.toFloat() / restTotal).coerceIn(0f, 1f)
+    } else 0f
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 400, easing = LinearEasing),
+        label = "restProgress"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF263D04)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.HourglassBottom,
+                    contentDescription = null,
+                    tint = KynectiaLime,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "TIEMPO DE RECUPERACIÓN",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = KynectiaLime,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+
+        // Anillo de Cuenta Regresiva Adaptado
+        Box(
+            modifier = Modifier.size(175.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 14.dp.toPx()
+                val radius = (size.minDimension - strokeWidth) / 2
+                val centerOffset = Offset(size.width / 2, size.height / 2)
+
+                drawCircle(
+                    color = Color(0xFF1B2A10),
+                    radius = radius,
+                    center = centerOffset,
+                    style = Stroke(width = strokeWidth)
+                )
+
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(KynectiaLime, Color(0xFF70FF00), KynectiaLime)
+                    ),
+                    startAngle = -90f,
+                    sweepAngle = 360f * animatedProgress,
+                    useCenter = false,
+                    topLeft = Offset(centerOffset.x - radius, centerOffset.y - radius),
+                    size = Size(radius * 2, radius * 2),
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "${restRemaining}s",
+                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 46.sp),
+                    fontWeight = FontWeight.Black,
+                    color = KynectiaLime
+                )
+                Text(
+                    text = "DESCANSO",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+
+        // Seguimiento de series en descanso
+        TvSetsTracker(
+            totalSets = totalSets,
+            currentSet = nextSet - 1,
+            weightKg = weightKg,
+            reps = reps,
+            isResting = true
+        )
+
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = DarkSurfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "PREPARAR SIGUIENTE SERIE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "Serie $nextSet de $totalSets • ${weightKg.toInt()} kg x $reps reps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = TextPrimary
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = KynectiaLime,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * CONTENIDO DE MODO DESCANSO - VERTICAL
+ */
 @Composable
 private fun TvRestModeVerticalContent(
     restRemaining: Int,
@@ -931,21 +1397,20 @@ private fun TvRestModeVerticalContent(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         // Anillo compacto de cuenta regresiva
         Box(
-            modifier = Modifier.size(105.dp),
+            modifier = Modifier.size(95.dp),
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val strokeWidth = 10.dp.toPx()
+                val strokeWidth = 8.dp.toPx()
                 val radius = (size.minDimension - strokeWidth) / 2
                 val centerOffset = Offset(size.width / 2, size.height / 2)
 
-                // Pista fondo
                 drawCircle(
                     color = DarkSurfaceVariant,
                     radius = radius,
@@ -953,7 +1418,6 @@ private fun TvRestModeVerticalContent(
                     style = Stroke(width = strokeWidth)
                 )
 
-                // Arco de progreso
                 drawArc(
                     brush = Brush.sweepGradient(
                         listOf(KynectiaLime, Color(0xFF00E5FF), KynectiaLime)
@@ -977,7 +1441,7 @@ private fun TvRestModeVerticalContent(
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Info de descanso y siguiente serie
         Column(
@@ -985,48 +1449,45 @@ private fun TvRestModeVerticalContent(
             verticalArrangement = Arrangement.Center
         ) {
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(6.dp),
                 color = Color(0xFF263D04)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.HourglassBottom,
                         contentDescription = null,
                         tint = KynectiaLime,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "TIEMPO DE DESCANSO",
+                        text = "DESCANSO",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Black,
                         color = KynectiaLime,
-                        fontSize = 11.sp
+                        fontSize = 10.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Siguiente: Serie $nextSet de $totalSets",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = TextPrimary,
+                fontSize = 13.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
-                text = "Respira y recupera. Pulsa [OK] para saltar.",
+                text = "Pulsa [OK] para saltar",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                fontSize = 10.sp
             )
         }
     }
@@ -1173,274 +1634,6 @@ fun TvRemoteActionButton(
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Black,
                     color = if (isFocused) Color.Black else TextMuted
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TvActiveSetContent(
-    currentSet: Int,
-    totalSets: Int,
-    reps: Int,
-    weightKg: Double
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = DarkSurfaceVariant,
-            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "SERIE ACTUAL",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Black,
-                    color = TextSecondary,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = "$currentSet / $totalSets",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
-                    color = KynectiaLime
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "REPETICIONES",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = "$reps",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "reps objetivo",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "CARGA",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = if (weightKg > 0) String.format(Locale.US, "%.1f", weightKg) else "0.0",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black,
-                        color = KynectiaOrange
-                    )
-                    Text(
-                        text = "kilogramos",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-        }
-
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF131D27),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = KynectiaLime,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Controla cada repetición con técnica estricta y rango completo.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    fontSize = 11.sp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TvRestModeContent(
-    restRemaining: Int,
-    restTotal: Int,
-    nextSet: Int,
-    totalSets: Int
-) {
-    val progress = if (restTotal > 0) {
-        (restRemaining.toFloat() / restTotal).coerceIn(0f, 1f)
-    } else 0f
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 400, easing = LinearEasing),
-        label = "restProgress"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF263D04)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.HourglassBottom,
-                    contentDescription = null,
-                    tint = KynectiaLime,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "TIEMPO DE RECUPERACIÓN",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Black,
-                    color = KynectiaLime,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
-
-        // Anillo de Cuenta Regresiva Adaptado
-        Box(
-            modifier = Modifier.size(190.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val strokeWidth = 14.dp.toPx()
-                val radius = (size.minDimension - strokeWidth) / 2
-                val centerOffset = Offset(size.width / 2, size.height / 2)
-
-                drawCircle(
-                    color = Color(0xFF1B2A10),
-                    radius = radius,
-                    center = centerOffset,
-                    style = Stroke(width = strokeWidth)
-                )
-
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(KynectiaLime, Color(0xFF70FF00), KynectiaLime)
-                    ),
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    topLeft = Offset(centerOffset.x - radius, centerOffset.y - radius),
-                    size = Size(radius * 2, radius * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                )
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "${restRemaining}s",
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 50.sp),
-                    fontWeight = FontWeight.Black,
-                    color = KynectiaLime
-                )
-                Text(
-                    text = "DESCANSO",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
-
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = DarkSurfaceVariant,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "PREPARAR SIGUIENTE SERIE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "Serie $nextSet de $totalSets",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary
-                    )
-                }
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = KynectiaLime,
-                    modifier = Modifier.size(20.dp)
                 )
             }
         }
