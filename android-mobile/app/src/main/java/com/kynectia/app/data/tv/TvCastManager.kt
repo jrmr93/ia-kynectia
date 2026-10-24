@@ -17,6 +17,10 @@ import org.json.JSONObject
 
 object TvCastManager {
     private const val TAG = "TvCastManager"
+    private const val PREFS_NAME = "kynectia_mobile_tv_prefs"
+    private const val KEY_PAIRED_SESSION_ID = "paired_tv_session_id"
+    private const val KEY_PAIRED_PIN = "paired_tv_pin"
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
@@ -40,7 +44,54 @@ object TvCastManager {
     fun initialize(context: Context) {
         if (appContext == null) {
             appContext = context.applicationContext
+            restoreSavedTvSession(context.applicationContext)
         }
+    }
+
+    private fun restoreSavedTvSession(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val savedSessionId = prefs.getString(KEY_PAIRED_SESSION_ID, null)
+        val savedPin = prefs.getString(KEY_PAIRED_PIN, null)
+
+        if (!savedSessionId.isNullOrBlank()) {
+            scope.launch {
+                try {
+                    val api = ApiClient.getService(context)
+                    val response = api.getTvSessionStatus(savedSessionId)
+                    if (response.success && response.data != null && response.data.isPaired) {
+                        _pairedSessionId.value = response.data.sessionId
+                        _pairedPin.value = response.data.pinCode
+                        _isTvConnected.value = true
+                        Log.i(TAG, "Sesión de TV restaurada con éxito: $savedSessionId")
+                    } else {
+                        clearSavedSession(context)
+                    }
+                } catch (e: Exception) {
+                    if (e is retrofit2.HttpException && e.code() == 404) {
+                        clearSavedSession(context)
+                    } else {
+                        // Conexión temporal offline o reintentando
+                        _pairedSessionId.value = savedSessionId
+                        _pairedPin.value = savedPin
+                        _isTvConnected.value = true
+                    }
+                }
+            }
+        }
+    }
+
+    private fun saveTvSession(context: Context, sessionId: String, pin: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString(KEY_PAIRED_SESSION_ID, sessionId)
+            .putString(KEY_PAIRED_PIN, pin)
+            .apply()
+    }
+
+    private fun clearSavedSession(context: Context?) {
+        val ctx = context ?: appContext ?: return
+        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
     }
 
     suspend fun pairWithPin(context: Context, pin: String, athleteName: String): Boolean {
@@ -62,6 +113,7 @@ object TvCastManager {
                 _pairedPin.value = data.pinCode
                 _isTvConnected.value = true
                 _isConnecting.value = false
+                saveTvSession(context.applicationContext, data.sessionId, data.pinCode)
                 return true
             } else {
                 _errorMessage.value = response.message ?: "Código PIN no válido o pantalla no encontrada"
@@ -118,6 +170,7 @@ object TvCastManager {
                 _pairedPin.value = data.pinCode
                 _isTvConnected.value = true
                 _isConnecting.value = false
+                saveTvSession(context.applicationContext, data.sessionId, data.pinCode)
                 return true
             } else {
                 _errorMessage.value = response.message ?: "Código QR inválido o expirado"
@@ -148,6 +201,7 @@ object TvCastManager {
     fun disconnect(context: Context? = null) {
         val targetContext = context?.applicationContext ?: appContext
         val sessionId = _pairedSessionId.value
+        clearSavedSession(targetContext)
         if (sessionId != null && targetContext != null) {
             scope.launch {
                 try {

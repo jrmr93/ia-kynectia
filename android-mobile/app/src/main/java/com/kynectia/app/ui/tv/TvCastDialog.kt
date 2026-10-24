@@ -93,13 +93,13 @@ fun TvCastDialog(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(if (isConnected) Color(0xFF1B2E00) else DarkSurfaceVariant),
+                        .background(if (isConnected) Color(0xFF00274D) else DarkSurfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Tv,
                         contentDescription = null,
-                        tint = if (isConnected) KynectiaLime else TextSecondary,
+                        tint = if (isConnected) CianTech else TextSecondary,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -110,7 +110,7 @@ fun TvCastDialog(
                     text = if (isConnected) "VINCULADO A PANTALLA TV" else "TRANSMITIR A ANDROID TV",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
-                    color = if (isConnected) KynectiaLime else TextPrimary,
+                    color = if (isConnected) CianTech else TextPrimary,
                     letterSpacing = 1.sp
                 )
 
@@ -132,8 +132,8 @@ fun TvCastDialog(
                     // Estado Ya Conectado
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFF132007),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, KynectiaLime.copy(alpha = 0.5f)),
+                        color = Color(0xFF0B1726),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CianTech.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -145,14 +145,14 @@ fun TvCastDialog(
                                     modifier = Modifier
                                         .size(10.dp)
                                         .clip(CircleShape)
-                                        .background(KynectiaLime)
+                                        .background(CianTech)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "EN VIVO - PIN: ${pairedPin ?: "ACTIVO"}",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Black,
-                                    color = KynectiaLime
+                                    color = CianTech
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -172,17 +172,17 @@ fun TvCastDialog(
                             TvCastManager.rotateTvScreen(context)
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = KynectiaLime,
-                            contentColor = DarkBackground
+                            containerColor = AzulElectrico,
+                            contentColor = Blanco
                         ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(22.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
                             Icons.Default.ScreenRotation,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = DarkBackground
+                            tint = Blanco
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(

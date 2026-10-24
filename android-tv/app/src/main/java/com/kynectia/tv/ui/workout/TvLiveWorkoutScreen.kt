@@ -1293,7 +1293,7 @@ private fun TvRestModeContent(
                 val centerOffset = Offset(size.width / 2, size.height / 2)
 
                 drawCircle(
-                    color = Color(0xFF1B2A10),
+                    color = Color(0xFF0F1E30),
                     radius = radius,
                     center = centerOffset,
                     style = Stroke(width = strokeWidth)
@@ -1301,7 +1301,7 @@ private fun TvRestModeContent(
 
                 drawArc(
                     brush = Brush.sweepGradient(
-                        colors = listOf(KynectiaLime, Color(0xFF70FF00), KynectiaLime)
+                        colors = listOf(AzulElectrico, CianTech, AzulElectrico)
                     ),
                     startAngle = -90f,
                     sweepAngle = 360f * animatedProgress,
@@ -1420,7 +1420,7 @@ private fun TvRestModeVerticalContent(
 
                 drawArc(
                     brush = Brush.sweepGradient(
-                        listOf(KynectiaLime, Color(0xFF00E5FF), KynectiaLime)
+                        listOf(AzulElectrico, CianTech, AzulElectrico)
                     ),
                     startAngle = -90f,
                     sweepAngle = 360f * animatedProgress,
@@ -1597,10 +1597,10 @@ fun TvRemoteActionButton(
         onClick = onClick,
         modifier = modifier.onFocusChanged { isFocused = it.isFocused },
         shape = RoundedCornerShape(10.dp),
-        color = if (isFocused) KynectiaLime else if (isPrimary) Color(0xFF1B2E00) else DarkSurfaceVariant,
+        color = if (isFocused) AzulElectrico else if (isPrimary) Color(0xFF0D253F) else DarkSurfaceVariant,
         border = androidx.compose.foundation.BorderStroke(
             width = if (isFocused) 2.dp else 1.dp,
-            color = if (isFocused) Color.White else if (isPrimary) KynectiaLime else DarkBorder
+            color = if (isFocused) Color.White else if (isPrimary) AzulElectrico else DarkBorder
         )
     ) {
         Row(
@@ -1610,7 +1610,7 @@ fun TvRemoteActionButton(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (isFocused) Color.Black else if (isPrimary) KynectiaLime else TextPrimary,
+                tint = if (isFocused) Color.White else if (isPrimary) CianTech else TextPrimary,
                 modifier = Modifier.size(16.dp)
             )
             if (label.isNotBlank()) {

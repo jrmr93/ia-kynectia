@@ -6,21 +6,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val TvDarkColorScheme = darkColorScheme(
-    primary = KynectiaLime,
-    onPrimary = Color(0xFF090D12),
-    primaryContainer = Color(0xFF1E3300),
-    onPrimaryContainer = KynectiaLime,
+    primary = AzulElectrico,
+    onPrimary = Blanco,
+    primaryContainer = Color(0xFF003875),
+    onPrimaryContainer = CianTech,
 
-    secondary = KynectiaOrange,
-    onSecondary = Color.White,
+    secondary = CianTech,
+    onSecondary = NegroProfundo,
 
-    background = DarkBackground,
+    background = NegroProfundo,
     onBackground = TextPrimary,
 
     surface = DarkSurface,
     onSurface = TextPrimary,
     surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = TextSecondary
+    onSurfaceVariant = TextSecondary,
+
+    outline = DarkBorder,
+    outlineVariant = DarkBorderActive,
+
+    error = ErrorRed,
+    onError = Color.White
 )
 
 @Composable
@@ -29,6 +35,7 @@ fun KynectiaTvTheme(
 ) {
     MaterialTheme(
         colorScheme = TvDarkColorScheme,
+        typography = TvTypography,
         content = content
     )
 }

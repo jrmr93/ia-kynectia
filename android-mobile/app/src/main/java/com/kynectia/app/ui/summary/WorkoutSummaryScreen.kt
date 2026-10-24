@@ -49,13 +49,13 @@ fun WorkoutSummaryScreen(
             modifier = Modifier
                 .size(80.dp)
                 .clip(RoundedCornerShape(40.dp))
-                .background(Color(0xFF1E3300)),
+                .background(Color(0xFF002F5E)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = KynectiaLime,
+                tint = CianTech,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -64,7 +64,7 @@ fun WorkoutSummaryScreen(
             text = "¡ENTRENAMIENTO COMPLETADO!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Black,
-            color = KynectiaLime,
+            color = Blanco,
             textAlign = TextAlign.Center
         )
 
@@ -164,12 +164,12 @@ fun WorkoutSummaryScreen(
                 .fillMaxWidth()
                 .height(54.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = KynectiaLime,
-                contentColor = Color(0xFF0D1117)
+                containerColor = AzulElectrico,
+                contentColor = Blanco
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(27.dp)
         ) {
-            Text("VOLVER AL INICIO", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("VOLVER AL INICIO", fontFamily = Exo2, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.sp)
         }
 
         Spacer(modifier = Modifier.height(30.dp))

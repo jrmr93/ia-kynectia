@@ -1,0 +1,30 @@
+[
+  {
+    "sessionId": "tv_1792861715963_hpbqfjs",
+    "pinCode": "556088",
+    "qrPayload": "{\"app\":\"kynectia\",\"type\":\"tv_pairing\",\"sessionId\":\"tv_1792861715963_hpbqfjs\",\"pinCode\":\"556088\"}",
+    "createdAt": 1792861715963,
+    "expiresAt": 1795461290970,
+    "isPaired": true,
+    "pairedAthleteName": "Atleta Kynectia",
+    "currentState": {
+      "routineName": "prueba",
+      "exerciseName": "Curl de Bíceps con Mancuernas",
+      "demoImageUrl": "",
+      "demoVideoUrl": "/uploads/videos/exercise-curl-biceps-mancuerna-1792723125436-422268080.mp4",
+      "currentExerciseIndex": 0,
+      "totalExercises": 1,
+      "currentSetNumber": 4,
+      "totalSets": 9,
+      "reps": 10,
+      "weightKg": 60,
+      "isResting": true,
+      "restSecondsRemaining": 15,
+      "restSecondsTotal": 60,
+      "elapsedWorkoutSeconds": 100,
+      "isPaused": false,
+      "isFinished": false,
+      "lastUpdated": 1792869290970
+    }
+  }
+]

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kynectia.app.data.repository.TrainingRepository
 import com.kynectia.app.theme.*
+import com.kynectia.app.ui.common.KynectiaBrandLogo
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,38 +56,22 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Branding Kynectia
-            Surface(
-                modifier = Modifier.size(72.dp),
-                color = Color(0xFF1E3300),
-                shape = RoundedCornerShape(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.FitnessCenter,
-                        contentDescription = "Kynectia Logo",
-                        tint = KynectiaLime,
-                        modifier = Modifier.size(38.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "KYNECTIA",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
-                color = KynectiaLime,
-                letterSpacing = 3.sp
+            // Branding Oficial Kynectia
+            KynectiaBrandLogo(
+                size = 72.dp,
+                showText = true,
+                showTagline = true,
+                horizontal = false
             )
 
+            Spacer(modifier = Modifier.height(14.dp))
+
             Text(
-                text = "Inicia sesión con tu cuenta de atleta o administrador para sincronizar tus entrenamientos en tiempo real con el backend.",
+                text = "Inicia sesión con tu cuenta de atleta o administrador para sincronizar tus entrenamientos en tiempo real.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -201,18 +186,20 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = KynectiaLime,
-                            contentColor = Color(0xFF0D1117)
+                            containerColor = AzulElectrico,
+                            contentColor = Blanco
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(26.dp)
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = Color(0xFF0D1117), modifier = Modifier.size(22.dp))
+                            CircularProgressIndicator(color = Blanco, modifier = Modifier.size(22.dp))
                         } else {
                             Text(
                                 text = "INICIAR SESIÓN",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp
+                                fontFamily = Exo2,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp,
+                                letterSpacing = 1.sp
                             )
                         }
                     }

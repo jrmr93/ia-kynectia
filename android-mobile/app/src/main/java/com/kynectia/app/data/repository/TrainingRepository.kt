@@ -28,6 +28,21 @@ class TrainingRepository(private val context: Context) {
     companion object {
         private const val TAG = "TrainingRepository"
         private const val FAST_NETWORK_TIMEOUT_MS = 6000L
+
+        // Estado reactivo compartido en toda la aplicación para indicar si está en modo offline / fallback
+        private val _isOfflineOrFallback = MutableStateFlow<Boolean>(false)
+        val isOfflineOrFallback: StateFlow<Boolean> = _isOfflineOrFallback.asStateFlow()
+
+        fun setOfflineMode(offline: Boolean) {
+            _isOfflineOrFallback.value = offline
+        }
+    }
+
+    init {
+        // Si el usuario inició sesión offline con token mock, inicializar en modo offline
+        if (sessionManager.authToken?.startsWith("mock_") == true) {
+            _isOfflineOrFallback.value = true
+        }
     }
 
     suspend fun getWorkouts(search: String? = null, difficultyLevel: String? = null, category: String? = null): List<WorkoutRoutine> = withContext(Dispatchers.IO) {
@@ -38,9 +53,13 @@ class TrainingRepository(private val context: Context) {
             }
             if (response?.success == true && !response.data.isNullOrEmpty()) {
                 cachedWorkouts.value = response.data
+                _isOfflineOrFallback.value = false
+            } else if (response == null) {
+                _isOfflineOrFallback.value = true
             }
         } catch (e: Exception) {
             Log.d(TAG, "Red no disponible para getWorkouts (${e.message}), usando datos cacheados")
+            _isOfflineOrFallback.value = true
         }
 
         var list = cachedWorkouts.value
@@ -62,10 +81,14 @@ class TrainingRepository(private val context: Context) {
             if (response?.success == true && response.data != null) {
                 val fresh = response.data
                 cachedWorkouts.value = cachedWorkouts.value.map { if (it.id == id) fresh else it }
+                _isOfflineOrFallback.value = false
                 return@withContext fresh
+            } else if (response == null) {
+                _isOfflineOrFallback.value = true
             }
         } catch (e: Exception) {
             Log.d(TAG, "Red no disponible para getWorkoutDetail ($id): ${e.message}")
+            _isOfflineOrFallback.value = true
         }
 
         val local = cachedWorkouts.value.find { it.id == id }
@@ -79,9 +102,13 @@ class TrainingRepository(private val context: Context) {
             }
             if (response?.success == true && !response.data.isNullOrEmpty()) {
                 cachedExercises.value = response.data
+                _isOfflineOrFallback.value = false
+            } else if (response == null) {
+                _isOfflineOrFallback.value = true
             }
         } catch (e: Exception) {
             Log.d(TAG, "Red no disponible para getExercises")
+            _isOfflineOrFallback.value = true
         }
 
         var list = cachedExercises.value
@@ -98,9 +125,13 @@ class TrainingRepository(private val context: Context) {
             }
             if (response?.success == true && !response.data.isNullOrEmpty()) {
                 cachedMuscles.value = response.data
+                _isOfflineOrFallback.value = false
+            } else if (response == null) {
+                _isOfflineOrFallback.value = true
             }
         } catch (e: Exception) {
             Log.d(TAG, "Red no disponible para getMuscles")
+            _isOfflineOrFallback.value = true
         }
         return@withContext cachedMuscles.value
     }
@@ -115,6 +146,8 @@ class TrainingRepository(private val context: Context) {
                 val profile = response.data.user ?: response.data.admin ?: UserProfile(email = email)
                 sessionManager.saveUserProfile(profile)
 
+                _isOfflineOrFallback.value = false
+
                 // Sincronizar inmediatamente datos reales de PostgreSQL
                 syncFromBackend()
                 return@withContext true
@@ -126,6 +159,7 @@ class TrainingRepository(private val context: Context) {
         if (email.isNotBlank() && password.length >= 6) {
             sessionManager.authToken = "mock_jwt_token_${System.currentTimeMillis()}"
             sessionManager.saveUserProfile(UserProfile(email = email, fullName = "Atleta Kynectia"))
+            _isOfflineOrFallback.value = true
             return@withContext true
         }
         return@withContext false
@@ -136,6 +170,7 @@ class TrainingRepository(private val context: Context) {
             val workouts = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) { api.getWorkouts() }
             if (workouts?.success == true && !workouts.data.isNullOrEmpty()) {
                 cachedWorkouts.value = workouts.data
+                _isOfflineOrFallback.value = false
             }
             val exercises = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) { api.getExercises() }
             if (exercises?.success == true && !exercises.data.isNullOrEmpty()) {
@@ -147,6 +182,27 @@ class TrainingRepository(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.d(TAG, "Error sincronizando datos reales del backend: ${e.message}")
+            _isOfflineOrFallback.value = true
+        }
+    }
+
+    /**
+     * Prueba rápida de conectividad con el servidor backend
+     */
+    suspend fun checkServerConnection(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val response = withTimeoutOrNull(2500L) {
+                api.getWorkouts(limit = 1)
+            }
+            val isOnline = response?.success == true
+            _isOfflineOrFallback.value = !isOnline
+            if (isOnline) {
+                syncFromBackend()
+            }
+            return@withContext isOnline
+        } catch (e: Exception) {
+            _isOfflineOrFallback.value = true
+            return@withContext false
         }
     }
 

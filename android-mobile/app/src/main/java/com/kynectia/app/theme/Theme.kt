@@ -6,26 +6,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val KynectiaDarkColorScheme = darkColorScheme(
-    primary = KynectiaLime,
-    onPrimary = Color(0xFF0D1117),
-    primaryContainer = Color(0xFF1E3300),
-    onPrimaryContainer = KynectiaLime,
+    primary = AzulElectrico,
+    onPrimary = Blanco,
+    primaryContainer = Color(0xFF003875),
+    onPrimaryContainer = CianTech,
 
-    secondary = KynectiaOrange,
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFF3B150A),
-    onSecondaryContainer = Color(0xFFFFB4A1),
+    secondary = CianTech,
+    onSecondary = NegroProfundo,
+    secondaryContainer = Color(0xFF003844),
+    onSecondaryContainer = CianTech,
 
-    tertiary = KynectiaCyan,
-    onTertiary = Color(0xFF00363D),
+    tertiary = Color(0xFF00B4D8),
+    onTertiary = Blanco,
 
-    background = DarkBackground,
+    background = NegroProfundo,
     onBackground = TextPrimary,
 
     surface = DarkSurface,
     onSurface = TextPrimary,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = TextSecondary,
+
+    outline = DarkBorder,
+    outlineVariant = DarkBorderActive,
 
     error = ErrorRed,
     onError = Color.White

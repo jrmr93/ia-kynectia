@@ -35,6 +35,7 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.kynectia.tv.theme.*
 import com.kynectia.tv.ui.TvDisplayOrientation
+import com.kynectia.tv.ui.common.TvBrandLogo
 import com.kynectia.tv.ui.workout.TvRemoteActionButton
 
 @Composable
@@ -79,22 +80,11 @@ fun TvPairingScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(44.dp),
-                        color = Color(0xFF1E3300),
-                        shape = RoundedCornerShape(22.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Tv, contentDescription = null, tint = KynectiaLime, modifier = Modifier.size(26.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("KYNECTIA TV", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = KynectiaLime)
-                        Text("MODO SALA VERTICAL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextSecondary)
-                    }
-                }
+                TvBrandLogo(
+                    size = 40.dp,
+                    showText = true,
+                    subtitle = "MODO SALA VERTICAL"
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TvRemoteActionButton(
@@ -239,39 +229,11 @@ fun TvPairingScreen(
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(54.dp),
-                        color = Color(0xFF1E3300),
-                        shape = RoundedCornerShape(27.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Tv,
-                                contentDescription = null,
-                                tint = KynectiaLime,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "KYNECTIA TV",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Black,
-                            color = KynectiaLime,
-                            letterSpacing = 3.sp
-                        )
-                        Text(
-                            text = "MODO SALA & GIMNASIO INTELIGENTE",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextSecondary,
-                            letterSpacing = 1.sp
-                        )
-                    }
-                }
+                TvBrandLogo(
+                    size = 56.dp,
+                    showText = true,
+                    subtitle = "Tu entrenador en casa • Google TV"
+                )
 
                 Column {
                     Text(

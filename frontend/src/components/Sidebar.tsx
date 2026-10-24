@@ -9,8 +9,8 @@ import {
   CreditCard,
   Megaphone,
   ShieldAlert,
-  Flame,
 } from 'lucide-react';
+import { KynectiaLogo } from './KynectiaLogo';
 
 export type NavigationTab =
   | 'dashboard'
@@ -55,35 +55,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       {/* Brand Header */}
       <div
         style={{
-          padding: '24px 20px',
+          padding: '22px 18px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'var(--grad-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0, 242, 254, 0.35)',
-          }}
-        >
-          <Flame size={24} color="#050b14" />
-        </div>
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.05em', color: '#ffffff' }}>
-            KYNECTIA
-          </h2>
-          <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600, letterSpacing: '0.08em' }}>
-            ADMIN PORTAL
-          </span>
-        </div>
+        <KynectiaLogo size={36} showTagline={true} />
       </div>
 
       {/* Navegación */}

@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                         isLoading = false,
                                         orientationMode = orientationMode,
                                         isSoundEnabled = isSoundEnabled,
-                                        onRefreshCode = { viewModel.createTvSession() },
+                                        onRefreshCode = { viewModel.forceNewTvSession() },
                                         onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
                                         onToggleSound = { viewModel.toggleSound() }
                                     )
@@ -122,13 +122,13 @@ class MainActivity : ComponentActivity() {
                                         routineName = state.routineName,
                                         summary = state.summary,
                                         orientationMode = orientationMode,
-                                        onReturnToPairing = { viewModel.createTvSession() }
+                                        onReturnToPairing = { viewModel.disconnect() }
                                     )
                                 }
                                 is TvUiState.Error -> {
                                     TvErrorScreen(
                                         message = state.message,
-                                        onRetry = { viewModel.createTvSession() }
+                                        onRetry = { viewModel.restoreOrInitSession() }
                                     )
                                 }
                             }

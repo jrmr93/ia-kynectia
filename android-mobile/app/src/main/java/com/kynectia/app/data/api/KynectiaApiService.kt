@@ -42,6 +42,9 @@ interface KynectiaApiService {
     @POST("tv/pair")
     suspend fun pairWithTv(@Body body: TvPairRequest): ApiResponse<TvPairResponse>
 
+    @GET("tv/session/{sessionId}")
+    suspend fun getTvSessionStatus(@Path("sessionId") sessionId: String): ApiResponse<TvPairResponse>
+
     @POST("tv/state")
     suspend fun updateTvState(@Body body: TvLiveWorkoutPayload): ApiResponse<Map<String, Boolean>>
 

@@ -280,11 +280,14 @@ suspend fun testHealthConnection(baseUrl: String): String = withContext(Dispatch
         val response = client.newCall(request).execute()
 
         if (response.isSuccessful) {
+            com.kynectia.app.data.repository.TrainingRepository.setOfflineMode(false)
             "✅ Conexión exitosa con el Backend de Kynectia (${response.code})"
         } else {
+            com.kynectia.app.data.repository.TrainingRepository.setOfflineMode(true)
             "⚠️ Servidor respondió con código ${response.code}"
         }
     } catch (e: Exception) {
+        com.kynectia.app.data.repository.TrainingRepository.setOfflineMode(true)
         "❌ Servidor no alcanzable: ${e.localizedMessage ?: "Error de conexión"}. La app continúa en modo local offline ultrarrápido."
     }
 }

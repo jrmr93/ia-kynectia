@@ -50,20 +50,64 @@ interface TvSession {
 }
 
 
-// Almacén en memoria de sesiones de TV activas
+import fs from 'fs';
+import path from 'path';
+
+// Almacén de sesiones de TV activas
 const tvSessions = new Map<string, TvSession>();
 const pinIndex = new Map<string, string>(); // pinCode -> sessionId
+const CACHE_FILE = path.join(process.cwd(), 'uploads', 'tv_sessions_cache.json');
 
-// Limpieza periódica de sesiones expiradas (3 horas de vigencia)
-setInterval(() => {
+function saveSessionsToDisk() {
+  try {
+    const list = Array.from(tvSessions.values());
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error guardando caché de sesiones TV:', err);
+  }
+}
+
+function loadSessionsFromDisk() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const data = fs.readFileSync(CACHE_FILE, 'utf-8');
+      const list = JSON.parse(data) as TvSession[];
+      const now = Date.now();
+      for (const s of list) {
+        if (s && s.sessionId && s.expiresAt > now) {
+          tvSessions.set(s.sessionId, s);
+          if (s.pinCode) {
+            pinIndex.set(s.pinCode, s.sessionId);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando caché de sesiones TV:', err);
+  }
+}
+
+// Cargar sesiones persistentes al iniciar el servidor
+loadSessionsFromDisk();
+
+// Limpieza periódica de sesiones realmente expiradas (vigencia extendida de 30 días para recordar conexión)
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
+  let changed = false;
   for (const [id, session] of tvSessions.entries()) {
     if (session.expiresAt < now) {
       pinIndex.delete(session.pinCode);
       tvSessions.delete(id);
+      changed = true;
     }
   }
-}, 5 * 60 * 1000);
+  if (changed) {
+    saveSessionsToDisk();
+  }
+}, 30 * 60 * 1000);
+if (cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
 
 export class TvService {
   static createSession(): TvSession {
@@ -75,7 +119,8 @@ export class TvService {
 
     const sessionId = `tv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const now = Date.now();
-    const expiresAt = now + 4 * 60 * 60 * 1000; // 4 horas
+    // 30 días de vigencia para recordar la conexión hasta desconexión manual
+    const expiresAt = now + 30 * 24 * 60 * 60 * 1000;
 
     const qrPayload = JSON.stringify({
       app: 'kynectia',
@@ -95,6 +140,7 @@ export class TvService {
 
     tvSessions.set(sessionId, session);
     pinIndex.set(pinCode, sessionId);
+    saveSessionsToDisk();
 
     return session;
   }
@@ -109,6 +155,8 @@ export class TvService {
     session.isPaired = true;
     session.pairedAthleteName = athleteName || 'Atleta Kynectia';
     session.pairedAthleteEmail = athleteEmail;
+    session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    saveSessionsToDisk();
 
     return session;
   }
@@ -120,6 +168,8 @@ export class TvService {
     session.isPaired = true;
     session.pairedAthleteName = athleteName || 'Atleta Kynectia';
     session.pairedAthleteEmail = athleteEmail;
+    session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    saveSessionsToDisk();
 
     return session;
   }
@@ -132,12 +182,16 @@ export class TvService {
       ...state,
       lastUpdated: Date.now(),
     };
+    session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    saveSessionsToDisk();
     return true;
   }
 
   static getSession(sessionId: string): TvSession | null {
     const session = tvSessions.get(sessionId);
     if (!session || session.expiresAt < Date.now()) return null;
+    // Renovar vigencia en cada lectura activa para mantener la sesión viva
+    session.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
     return session;
   }
 
@@ -146,6 +200,7 @@ export class TvService {
     if (session) {
       pinIndex.delete(session.pinCode);
       tvSessions.delete(sessionId);
+      saveSessionsToDisk();
       return true;
     }
     return false;
@@ -190,6 +245,7 @@ export class TvService {
     if (orientation) {
       session.orientation = orientation;
     }
+    saveSessionsToDisk();
     return {
       rotateCount: session.rotateCount,
       orientation: session.orientation,

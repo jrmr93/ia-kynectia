@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import com.kynectia.app.data.model.WorkoutRoutine
 import com.kynectia.app.data.tv.TvCastManager
 import com.kynectia.app.theme.*
+import com.kynectia.app.ui.common.KynectiaBrandLogo
 import com.kynectia.app.ui.tv.TvCastDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,20 +51,12 @@ fun WorkoutsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "KYNECTIA",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = KynectiaLime,
-                            letterSpacing = 2.sp
-                        )
-                        Text(
-                            text = "Planes de Entrenamiento y Rutinas",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
-                    }
+                    KynectiaBrandLogo(
+                        size = 32.dp,
+                        showText = true,
+                        showTagline = true,
+                        horizontal = true
+                    )
                 },
                 actions = {
                     if (isTvConnected) {
@@ -71,7 +64,7 @@ fun WorkoutsScreen(
                             Icon(
                                 Icons.Default.ScreenRotation,
                                 contentDescription = "Girar Pantalla TV",
-                                tint = KynectiaLime
+                                tint = CianTech
                             )
                         }
                     }
@@ -81,14 +74,14 @@ fun WorkoutsScreen(
                             Icon(
                                 Icons.Default.Tv,
                                 contentDescription = "Transmitir a TV",
-                                tint = if (isTvConnected) KynectiaLime else TextSecondary
+                                tint = if (isTvConnected) CianTech else TextSecondary
                             )
                             if (isTvConnected) {
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(KynectiaLime)
+                                        .background(CianTech)
                                         .align(Alignment.TopEnd)
                                 )
                             }
@@ -353,16 +346,18 @@ fun WorkoutRoutineCard(
                     Button(
                         onClick = onStartClick,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = KynectiaLime,
-                            contentColor = Color(0xFF0D1117)
+                            containerColor = AzulElectrico,
+                            contentColor = Blanco
                         ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(20.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = "ENTRENAR",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 13.sp
+                            fontFamily = Exo2,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }

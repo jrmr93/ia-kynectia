@@ -1,12 +1,14 @@
 package com.kynectia.tv.ui
 
 import android.app.Activity
+import android.app.Application
 import android.content.pm.ActivityInfo
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kynectia.tv.data.TvApiClient
 import com.kynectia.tv.data.TvCommandRequest
 import com.kynectia.tv.data.TvLiveWorkoutState
+import com.kynectia.tv.data.TvSessionStorage
 import com.kynectia.tv.data.TvWorkoutSummary
 import com.kynectia.tv.sound.TvSoundManager
 import kotlinx.coroutines.CancellationException
@@ -55,7 +57,7 @@ sealed interface TvUiState {
     data class Error(val message: String) : TvUiState
 }
 
-class TvViewModel : ViewModel() {
+class TvViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<TvUiState>(TvUiState.Loading)
     val uiState: StateFlow<TvUiState> = _uiState.asStateFlow()
@@ -74,7 +76,8 @@ class TvViewModel : ViewModel() {
     private var hasCelebratedConnection: Boolean = false
 
     init {
-        createTvSession()
+        TvSessionStorage.init(application.applicationContext)
+        restoreOrInitSession()
     }
 
     fun cycleOrientation(activity: Activity? = null) {
@@ -100,6 +103,104 @@ class TvViewModel : ViewModel() {
         return newState
     }
 
+    /**
+     * Restaura la última sesión enlazada de Android TV si existe y no ha sido cerrada,
+     * permitiendo que al reiniciar la app continúe conectada automáticamente.
+     */
+    fun restoreOrInitSession() {
+        pollingJob?.cancel()
+        localTickerJob?.cancel()
+        lastFinishedCelebrated = false
+        lastAppliedRotateCount = -1
+        hasCelebratedConnection = false
+        _uiState.value = TvUiState.Loading
+
+        val saved = TvSessionStorage.getSession()
+        if (saved == null || saved.sessionId.isBlank()) {
+            createTvSession()
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val service = TvApiClient.getService()
+                val response = service.getSessionStatus(saved.sessionId)
+                if (response.success && response.data != null) {
+                    val status = response.data
+                    currentSessionId = status.sessionId
+                    val athlete = status.pairedAthleteName ?: saved.athleteName ?: "Atleta"
+
+                    TvSessionStorage.saveSession(
+                        sessionId = status.sessionId,
+                        pinCode = status.pinCode,
+                        qrPayload = saved.qrPayload.ifBlank {
+                            "kynectia://tv-pair?sessionId=${status.sessionId}&pin=${status.pinCode}"
+                        },
+                        isPaired = status.isPaired,
+                        athleteName = athlete
+                    )
+
+                    if (status.isPaired) {
+                        hasCelebratedConnection = true
+                        if (status.state != null) {
+                            val liveState = status.state
+                            if (liveState.isFinished && liveState.summary != null) {
+                                _uiState.value = TvUiState.Summary(
+                                    sessionId = status.sessionId,
+                                    athleteName = athlete,
+                                    routineName = liveState.routineName,
+                                    summary = liveState.summary
+                                )
+                            } else {
+                                _uiState.value = TvUiState.LiveWorkout(
+                                    sessionId = status.sessionId,
+                                    athleteName = athlete,
+                                    state = liveState
+                                )
+                            }
+                        } else {
+                            _uiState.value = TvUiState.Connected(
+                                sessionId = status.sessionId,
+                                pinCode = status.pinCode,
+                                athleteName = athlete
+                            )
+                        }
+                    } else {
+                        _uiState.value = TvUiState.Pairing(
+                            sessionId = status.sessionId,
+                            pinCode = status.pinCode,
+                            qrPayload = saved.qrPayload.ifBlank {
+                                "kynectia://tv-pair?sessionId=${status.sessionId}&pin=${status.pinCode}"
+                            }
+                        )
+                    }
+
+                    startPolling(status.sessionId)
+                    startLocalTicker()
+                } else {
+                    TvSessionStorage.clearSession()
+                    createTvSession()
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (e is retrofit2.HttpException && e.code() == 404) {
+                    TvSessionStorage.clearSession()
+                    createTvSession()
+                } else {
+                    // Si hubo error de red temporal (por ejemplo Wi-Fi arrancando), reintentar sin borrar la sesión guardada
+                    _uiState.value = TvUiState.Error("Reconectando a la última sesión... (${e.localizedMessage})")
+                    delay(2000)
+                    restoreOrInitSession()
+                }
+            }
+        }
+    }
+
+    fun forceNewTvSession() {
+        TvSessionStorage.clearSession()
+        createTvSession()
+    }
+
     fun createTvSession() {
         pollingJob?.cancel()
         localTickerJob?.cancel()
@@ -115,6 +216,12 @@ class TvViewModel : ViewModel() {
                 if (response.success && response.data != null) {
                     val session = response.data
                     currentSessionId = session.sessionId
+                    TvSessionStorage.saveSession(
+                        sessionId = session.sessionId,
+                        pinCode = session.pinCode,
+                        qrPayload = session.qrPayload,
+                        isPaired = false
+                    )
                     _uiState.value = TvUiState.Pairing(
                         sessionId = session.sessionId,
                         pinCode = session.pinCode,
@@ -162,6 +269,7 @@ class TvViewModel : ViewModel() {
                         }
 
                         if (status.isPaired && status.state != null) {
+                            TvSessionStorage.updatePairedStatus(isPaired = true, athleteName = athlete)
                             hasCelebratedConnection = true
                             val liveState = status.state
 
@@ -193,6 +301,7 @@ class TvViewModel : ViewModel() {
                                 )
                             }
                         } else if (status.isPaired && status.state == null) {
+                            TvSessionStorage.updatePairedStatus(isPaired = true, athleteName = athlete)
                             // Pantalla vinculada esperando inicio del entrenamiento desde la app móvil
                             if (!hasCelebratedConnection) {
                                 hasCelebratedConnection = true
@@ -217,6 +326,12 @@ class TvViewModel : ViewModel() {
                     }
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
+                    if (e is retrofit2.HttpException && e.code() == 404) {
+                        // Sesión cerrada o desconectada en el servidor
+                        TvSessionStorage.clearSession()
+                        createTvSession()
+                        return@launch
+                    }
                 }
                 delay(800)
             }
@@ -304,12 +419,21 @@ class TvViewModel : ViewModel() {
         sendRemoteCommand("PREV_EXERCISE")
     }
 
+    /**
+     * Desconexión manual explícita
+     */
     fun disconnect() {
-        val sessionId = currentSessionId ?: return
+        val sessionId = currentSessionId
+        TvSessionStorage.clearSession()
+        pollingJob?.cancel()
+        localTickerJob?.cancel()
+        _uiState.value = TvUiState.Loading
         viewModelScope.launch {
-            try {
-                TvApiClient.getService().disconnect(sessionId)
-            } catch (_: Exception) {}
+            if (sessionId != null) {
+                try {
+                    TvApiClient.getService().disconnect(sessionId)
+                } catch (_: Exception) {}
+            }
             createTvSession()
         }
     }

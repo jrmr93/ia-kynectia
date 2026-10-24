@@ -1,44 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&display=swap');
 
 :root {
-  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-main: 'Exo 2', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Exo 2', system-ui, -apple-system, sans-serif;
 
-  /* Colores Base Fitness Dark */
-  --bg-primary: #0a0d14;
-  --bg-secondary: #111622;
-  --bg-card: rgba(19, 25, 39, 0.85);
-  --bg-card-hover: rgba(26, 35, 54, 0.95);
-  --bg-glass: rgba(17, 22, 34, 0.7);
+  /* Colores Base Kynectia - Negro Profundo #0B0F14 */
+  --bg-primary: #0B0F14;
+  --bg-secondary: #101620;
+  --bg-card: rgba(16, 22, 32, 0.90);
+  --bg-card-hover: rgba(22, 32, 48, 0.96);
+  --bg-glass: rgba(16, 22, 32, 0.78);
 
-  /* Acentos Energéticos Kynectia */
-  --accent-cyan: #00f2fe;
-  --accent-blue: #4facfe;
-  --accent-green: #10b981;
+  /* Acentos de Marca Oficiales */
+  --accent-blue: #007BFF; /* Azul Eléctrico */
+  --accent-cyan: #00E0FF; /* Cian Tech */
+  --accent-white: #FFFFFF; /* Blanco */
+  --accent-green: #00E5A3;
   --accent-emerald: #059669;
-  --accent-orange: #f59e0b;
-  --accent-red: #ef4444;
-  --accent-purple: #8b5cf6;
+  --accent-orange: #FF5722; /* Calorías / Fuego */
+  --accent-red: #EF4444;
+  --accent-purple: #7C3AED;
 
-  /* Gradientes de Impacto */
-  --grad-primary: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-  --grad-energy: linear-gradient(135deg, #ff8c00 0%, #e52e71 100%);
-  --grad-card: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
-  --grad-sidebar: linear-gradient(180deg, #0d121c 0%, #080b11 100%);
+  /* Gradientes de Impacto Oficial */
+  --grad-primary: linear-gradient(135deg, #00E0FF 0%, #007BFF 100%);
+  --grad-brand: linear-gradient(135deg, #00E0FF 0%, #007BFF 100%);
+  --grad-energy: linear-gradient(135deg, #00E0FF 0%, #007BFF 100%);
+  --grad-card: linear-gradient(180deg, rgba(22, 32, 48, 0.55) 0%, rgba(11, 15, 20, 0.92) 100%);
+  --grad-sidebar: linear-gradient(180deg, #0E131A 0%, #080B0F 100%);
 
   /* Textos */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-highlight: #38bdf8;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-highlight: #00E0FF;
 
   /* Bordes y Sombras */
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(0, 242, 254, 0.4);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(0, 242, 254, 0.25);
+  --border-active: rgba(0, 224, 255, 0.45);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 20px rgba(0, 224, 255, 0.3);
+  --shadow-glow-blue: 0 0 20px rgba(0, 123, 255, 0.35);
 
   /* Transiciones */
   --transition-fast: 0.15s ease;

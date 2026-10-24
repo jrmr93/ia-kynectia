@@ -55,13 +55,13 @@ fun TvSummaryScreen(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF263D04)),
+                    .background(Color(0xFF0C1B2E)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.EmojiEvents,
                     contentDescription = null,
-                    tint = KynectiaLime,
+                    tint = CianTech,
                     modifier = Modifier.size(46.dp)
                 )
             }
@@ -72,7 +72,7 @@ fun TvSummaryScreen(
                 text = "¡ENTRENAMIENTO COMPLETADO!",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Black,
-                color = KynectiaLime,
+                color = CianTech,
                 letterSpacing = 2.sp,
                 textAlign = TextAlign.Center
             )
@@ -99,7 +99,7 @@ fun TvSummaryScreen(
                         label = "DURACIÓN TOTAL",
                         value = formattedDuration,
                         unit = "minutos de entrenamiento",
-                        accentColor = KynectiaLime,
+                        accentColor = AzulElectrico,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -108,7 +108,7 @@ fun TvSummaryScreen(
                         label = "SERIES COMPLETADAS",
                         value = "${summary.totalSetsCompleted}",
                         unit = "series totales realizadas",
-                        accentColor = Color(0xFF00E5FF),
+                        accentColor = CianTech,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -132,7 +132,7 @@ fun TvSummaryScreen(
                         label = "DURACIÓN TOTAL",
                         value = formattedDuration,
                         unit = "minutos",
-                        accentColor = KynectiaLime,
+                        accentColor = AzulElectrico,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -141,7 +141,7 @@ fun TvSummaryScreen(
                         label = "SERIES COMPLETADAS",
                         value = "${summary.totalSetsCompleted}",
                         unit = "series totales",
-                        accentColor = Color(0xFF00E5FF),
+                        accentColor = CianTech,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -161,10 +161,10 @@ fun TvSummaryScreen(
             Button(
                 onClick = onReturnToPairing,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = KynectiaLime,
-                    contentColor = Color.Black
+                    containerColor = AzulElectrico,
+                    contentColor = Blanco
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(26.dp),
                 modifier = Modifier
                     .fillMaxWidth(if (orientationMode.isVerticalLayout) 1f else 0.6f)
                     .height(54.dp)

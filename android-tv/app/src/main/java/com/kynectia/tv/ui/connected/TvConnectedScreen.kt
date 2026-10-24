@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kynectia.tv.theme.*
 import com.kynectia.tv.ui.TvDisplayOrientation
+import com.kynectia.tv.ui.common.TvBrandLogo
 import com.kynectia.tv.ui.workout.TvRemoteActionButton
 
 @Composable
@@ -72,37 +73,11 @@ fun TvConnectedScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(44.dp),
-                        color = Color(0xFF1E3300),
-                        shape = RoundedCornerShape(22.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Tv,
-                                contentDescription = null,
-                                tint = KynectiaLime,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "KYNECTIA TV",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = KynectiaLime
-                        )
-                        Text(
-                            text = "PANTALLA CONECTADA",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = KynectiaLime.copy(alpha = 0.8f)
-                        )
-                    }
-                }
+                TvBrandLogo(
+                    size = 40.dp,
+                    showText = true,
+                    subtitle = "PANTALLA CONECTADA"
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TvRemoteActionButton(
@@ -299,38 +274,11 @@ fun TvConnectedScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(48.dp),
-                        color = Color(0xFF1E3300),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Tv,
-                                contentDescription = null,
-                                tint = KynectiaLime,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "KYNECTIA TV",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = KynectiaLime,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "MODO SALA Y GIMNASIO",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = TextSecondary
-                        )
-                    }
-                }
+                TvBrandLogo(
+                    size = 52.dp,
+                    showText = true,
+                    subtitle = "MODO SALA Y GIMNASIO • Google TV"
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

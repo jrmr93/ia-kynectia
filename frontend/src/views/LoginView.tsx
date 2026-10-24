@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Flame, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { KynectiaLogo } from '../components/KynectiaLogo';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -37,7 +38,7 @@ export const LoginView: React.FC = () => {
         justifyContent: 'center',
         minHeight: '100vh',
         width: '100vw',
-        background: 'radial-gradient(ellipse at bottom, #0f172a 0%, #060911 100%)',
+        background: 'radial-gradient(ellipse at bottom, #0e1e38 0%, #0B0F14 100%)',
         position: 'relative',
         padding: '20px',
       }}
@@ -45,38 +46,23 @@ export const LoginView: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '440px',
-          background: 'rgba(17, 24, 39, 0.85)',
+          maxWidth: '460px',
+          background: 'rgba(16, 22, 32, 0.9)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '20px',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
           padding: '40px 36px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 242, 254, 0.15)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 224, 255, 0.1)',
         }}
       >
-        {/* Brand Icon */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '60px',
-              height: '60px',
-              borderRadius: '16px',
-              background: 'var(--grad-primary)',
-              boxShadow: '0 8px 24px rgba(0, 242, 254, 0.4)',
-              marginBottom: '16px',
-            }}
-          >
-            <Flame size={34} color="#050b14" />
-          </div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-            KYNECTIA
-          </h1>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Portal de Administración y Control Deportivo
-          </p>
+        {/* Brand Icon & Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '28px', display: 'flex', justifyContent: 'center' }}>
+          <KynectiaLogo
+            size={64}
+            horizontal={false}
+            showTagline={true}
+            subtitle="Portal de Administración y Control Deportivo"
+          />
         </div>
 
         <form onSubmit={handleSubmit}>
