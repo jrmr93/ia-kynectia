@@ -353,7 +353,7 @@ fun WorkoutPlayerScreen(
 
                         QuickTimerChip(
                             icon = Icons.Default.AccessTime,
-                            title = "Rest timer ",
+                            title = "Descanso: ",
                             value = formattedTime,
                             isHighlighted = state.isResting,
                             onClick = { showRestTimerPicker = true }
@@ -362,7 +362,7 @@ fun WorkoutPlayerScreen(
                         // Interval
                         QuickTimerChip(
                             icon = Icons.Default.Timer,
-                            title = "Interval",
+                            title = "Intervalo",
                             value = "",
                             isHighlighted = false,
                             onClick = { showIntervalDialog = true }
@@ -622,7 +622,7 @@ fun SetsTableHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Set",
+            text = "Serie",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF7A8696),
@@ -802,7 +802,7 @@ fun AddSetTableRow(
             )
         }
 
-        // Botón Delete
+        // Botón Eliminar
         Box(
             modifier = Modifier
                 .width(64.dp)
@@ -810,7 +810,7 @@ fun AddSetTableRow(
             contentAlignment = Alignment.CenterEnd
         ) {
             Text(
-                text = "Delete",
+                text = "Eliminar",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = if (canDelete) Color(0xFF6E7A8A) else Color(0xFF38404D)
@@ -959,7 +959,7 @@ fun WorkoutBottomControlBar(
                     text = if (isAllSetsCompleted) {
                         if (isLastExercise) "Finalizar Entrenamiento" else "Siguiente Ejercicio"
                     } else {
-                        "Log Set"
+                        "Registrar Serie"
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -1181,7 +1181,7 @@ fun IntervalInfoDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("⏱️ Modo Intervalo & Tempo", color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text("⏱️ Modo Intervalo y Cadencia", color = TextPrimary, fontWeight = FontWeight.Bold)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1409,7 +1409,7 @@ fun AiCoachTipsDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = KynectiaBlueLight)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Kynectia AI Coach ⚡", color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Entrenador IA Kynectia ⚡", color = TextPrimary, fontWeight = FontWeight.Bold)
             }
         },
         text = {

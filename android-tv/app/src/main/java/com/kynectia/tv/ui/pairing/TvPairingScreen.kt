@@ -292,7 +292,7 @@ fun TvPairingScreen(
 
                         TvRemoteActionButton(
                             icon = if (isSoundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            label = if (isSoundEnabled) "Audio ON" else "Audio OFF",
+                            label = if (isSoundEnabled) "Audio activado" else "Audio silenciado",
                             shortcutKey = "2",
                             onClick = onToggleSound
                         )

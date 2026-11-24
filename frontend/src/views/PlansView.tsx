@@ -266,7 +266,7 @@ export const PlansView: React.FC = () => {
                         letterSpacing: '0.05em',
                       }}
                     >
-                      Ciclo: {p.billing_cycle}
+                      Ciclo: {p.billing_cycle === 'monthly' ? 'Mensual' : p.billing_cycle === 'quarterly' ? 'Trimestral' : p.billing_cycle === 'biannual' ? 'Semestral' : p.billing_cycle === 'annual' ? 'Anual' : 'Gratuito'}
                     </span>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#ffffff', marginTop: '4px' }}>
                       {p.name}
@@ -280,7 +280,7 @@ export const PlansView: React.FC = () => {
                         ${parseFloat(String(p.price)).toFixed(2)}
                       </span>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        {p.currency} / {p.billing_cycle === 'free' ? 'gratis' : p.billing_cycle}
+                        {p.currency} / {p.billing_cycle === 'free' ? 'gratis' : p.billing_cycle === 'monthly' ? 'mes' : p.billing_cycle === 'quarterly' ? 'trimestre' : p.billing_cycle === 'biannual' ? 'semestre' : 'año'}
                       </span>
                     </div>
 
@@ -387,7 +387,9 @@ export const PlansView: React.FC = () => {
                     <td>
                       <span className="badge badge-info">{s.plan_name}</span>
                     </td>
-                    <td style={{ textTransform: 'capitalize' }}>{s.billing_cycle}</td>
+                    <td>
+                      {s.billing_cycle === 'monthly' ? 'Mensual' : s.billing_cycle === 'annual' ? 'Anual' : s.billing_cycle === 'lifetime' ? 'Vitalicio' : s.billing_cycle === 'free' ? 'Gratuito' : s.billing_cycle}
+                    </td>
                     <td>
                       <strong style={{ color: '#ffffff' }}>${parseFloat(s.price_paid).toFixed(2)}</strong> {s.currency}
                     </td>
@@ -396,7 +398,7 @@ export const PlansView: React.FC = () => {
                     </td>
                     <td>
                       <span className={`badge ${s.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
-                        {s.status}
+                        {s.status === 'active' ? 'Activa' : s.status === 'canceled' ? 'Cancelada' : s.status === 'expired' ? 'Expirada' : s.status}
                       </span>
                     </td>
                   </tr>

@@ -32,7 +32,8 @@ data class WorkoutRoutine(
     val publication_status: String = "published",
     val version: Int = 1,
     val is_active: Boolean = true,
-    val exercises: List<RoutineExerciseDetail> = emptyList()
+    val exercises: List<RoutineExerciseDetail> = emptyList(),
+    val is_custom: Boolean = false
 )
 
 @Serializable

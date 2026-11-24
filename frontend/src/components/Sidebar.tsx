@@ -30,7 +30,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const menuItems = [
-    { id: 'dashboard' as NavigationTab, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'dashboard' as NavigationTab, label: 'Panel de Control', icon: LayoutDashboard },
     { id: 'users' as NavigationTab, label: 'Usuarios', icon: Users },
     { id: 'muscles' as NavigationTab, label: 'Grupos Musculares', icon: Layers },
     { id: 'equipment' as NavigationTab, label: 'Implementos', icon: Dumbbell },

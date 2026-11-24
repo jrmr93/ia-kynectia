@@ -16,3 +16,6 @@ import kotlinx.serialization.Serializable
     val totalSetsCompleted: Int,
     val totalVolumeKg: Double
 ) : NavKey
+
+@Serializable data class CreateEditRoutine(val routineId: Int? = null) : NavKey
+

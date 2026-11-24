@@ -18,8 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -33,17 +33,60 @@ import com.kynectia.app.ui.tv.TvCastDialog
 @Composable
 fun WorkoutsScreen(
     viewModel: WorkoutsViewModel,
-    onStartWorkout: (Int) -> Unit
+    onStartWorkout: (Int) -> Unit,
+    onCreateRoutine: () -> Unit = {},
+    onEditRoutine: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val isTvConnected by TvCastManager.isTvConnected.collectAsState()
     var showTvCastDialog by remember { mutableStateOf(false) }
+    var routineToDelete by remember { mutableStateOf<WorkoutRoutine?>(null) }
 
+    // Diálogo para transmitir a TV
     if (showTvCastDialog) {
         TvCastDialog(
             athleteName = "Atleta Kynectia",
             onDismissRequest = { showTvCastDialog = false }
+        )
+    }
+
+    // Diálogo de confirmación para eliminar rutina personalizada
+    if (routineToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { routineToDelete = null },
+            containerColor = DarkSurface,
+            title = {
+                Text(
+                    text = "¿Eliminar rutina?",
+                    fontFamily = Exo2,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Estás seguro de que deseas eliminar permanentemente la rutina '${routineToDelete?.name}'?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        routineToDelete?.let { viewModel.deleteRoutine(it.id) }
+                        routineToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = KynectiaOrange, contentColor = Blanco)
+                ) {
+                    Text("Eliminar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { routineToDelete = null }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            }
         )
     }
 
@@ -95,7 +138,24 @@ fun WorkoutsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
             )
         },
-
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onCreateRoutine,
+                containerColor = KynectiaLime,
+                contentColor = Color(0xFF0D1117),
+                shape = RoundedCornerShape(16.dp),
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = {
+                    Text(
+                        text = "CREAR RUTINA",
+                        fontFamily = Exo2,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            )
+        },
         containerColor = DarkBackground
     ) { paddingValues ->
         LazyColumn(
@@ -133,21 +193,77 @@ fun WorkoutsScreen(
                 )
             }
 
-            // Chips de filtro de dificultad
+            // Chips de filtro: Todas, Mis Rutinas, Dificultades
             item {
-                val difficulties = listOf(
-                    "Todos" to null,
-                    "Principiante" to "beginner",
-                    "Intermedio" to "intermediate",
-                    "Avanzado" to "advanced"
-                )
-
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Todas
+                    item {
+                        val isAllSelected = !state.showOnlyCustom && state.selectedDifficulty == null
+                        FilterChip(
+                            selected = isAllSelected,
+                            onClick = { viewModel.onShowAllSelected() },
+                            label = { Text("Todas") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = KynectiaLime,
+                                selectedLabelColor = Color(0xFF0D1117),
+                                containerColor = DarkSurface,
+                                labelColor = TextSecondary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isAllSelected,
+                                borderColor = DarkBorder,
+                                selectedBorderColor = KynectiaLime
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    // Mis Rutinas (Personalizadas)
+                    item {
+                        FilterChip(
+                            selected = state.showOnlyCustom,
+                            onClick = { viewModel.onShowOnlyCustomSelected() },
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        if (state.customCount > 0) "Mis Rutinas (${state.customCount})" else "Mis Rutinas"
+                                    )
+                                }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CianTech,
+                                selectedLabelColor = Color(0xFF0D1117),
+                                containerColor = DarkSurface,
+                                labelColor = TextSecondary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = state.showOnlyCustom,
+                                borderColor = DarkBorder,
+                                selectedBorderColor = CianTech
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    // Dificultades
+                    val difficulties = listOf(
+                        "Principiante" to "beginner",
+                        "Intermedio" to "intermediate",
+                        "Avanzado" to "advanced"
+                    )
                     items(difficulties) { (label, value) ->
-                        val isSelected = state.selectedDifficulty == value
+                        val isSelected = !state.showOnlyCustom && state.selectedDifficulty == value
                         FilterChip(
                             selected = isSelected,
                             onClick = { viewModel.onDifficultySelected(value) },
@@ -184,30 +300,75 @@ fun WorkoutsScreen(
                 }
             } else if (state.routines.isEmpty()) {
                 item {
-                    Box(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(40.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(vertical = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text(
-                            text = "No se encontraron rutinas disponibles.",
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = if (state.showOnlyCustom) CianTech else KynectiaLime,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = if (state.showOnlyCustom) "Aún no tienes rutinas personalizadas" else "No se encontraron rutinas",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (state.showOnlyCustom)
+                                    "Crea tu primera rutina a medida seleccionando ejercicios, series, repeticiones, descansos y pesos."
+                                else
+                                    "Intenta cambiar los filtros de búsqueda o dificultad.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            if (state.showOnlyCustom) {
+                                Spacer(modifier = Modifier.height(18.dp))
+                                Button(
+                                    onClick = onCreateRoutine,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = CianTech,
+                                        contentColor = Color(0xFF0D1117)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Crear Mi Rutina", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             } else {
                 items(state.routines) { routine ->
                     WorkoutRoutineCard(
                         routine = routine,
-                        onStartClick = { onStartWorkout(routine.id) }
+                        onStartClick = { onStartWorkout(routine.id) },
+                        onEditClick = if (routine.is_custom) { { onEditRoutine(routine.id) } } else null,
+                        onDeleteClick = if (routine.is_custom) { { routineToDelete = routine } } else null,
+                        onDuplicateClick = { viewModel.duplicateRoutine(routine) }
                     )
                 }
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -216,7 +377,10 @@ fun WorkoutsScreen(
 @Composable
 fun WorkoutRoutineCard(
     routine: WorkoutRoutine,
-    onStartClick: () -> Unit
+    onStartClick: () -> Unit,
+    onEditClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
+    onDuplicateClick: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -263,45 +427,143 @@ fun WorkoutRoutineCard(
                         )
                 )
 
-                // Badge de Dificultad
-                Surface(
+                // Badges en la parte superior
+                Row(
                     modifier = Modifier
-                        .padding(12.dp)
-                        .align(Alignment.TopEnd),
-                    color = when (routine.difficulty_level.lowercase()) {
-                        "advanced" -> KynectiaOrange
-                        "intermediate" -> Color(0xFFF59E0B)
-                        else -> SuccessGreen
-                    },
-                    shape = RoundedCornerShape(6.dp)
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = routine.difficulty_level.uppercase(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    // Badge si es Rutina Personalizada
+                    if (routine.is_custom) {
+                        Surface(
+                            color = CianTech,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Tune,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0D1117),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "PERSONALIZADA",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0D1117)
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            color = DarkBackground.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = routine.category,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+
+                    // Badge de Dificultad
+                    Surface(
+                        color = when (routine.difficulty_level.lowercase()) {
+                            "advanced" -> KynectiaOrange
+                            "intermediate" -> Color(0xFFF59E0B)
+                            else -> SuccessGreen
+                        },
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = routine.difficulty_level.uppercase(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
 
             // Información de la rutina
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = routine.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = routine.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
 
-                if (!routine.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = routine.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
-                        maxLines = 2
-                    )
+                        if (!routine.description.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = routine.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                maxLines = 2
+                            )
+                        }
+                    }
+
+                    // Acciones de Editar / Eliminar si es personalizada
+                    if (routine.is_custom) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (onEditClick != null) {
+                                IconButton(
+                                    onClick = onEditClick,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Editar rutina",
+                                        tint = CianTech,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            if (onDeleteClick != null) {
+                                IconButton(
+                                    onClick = onDeleteClick,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.DeleteOutline,
+                                        contentDescription = "Eliminar rutina",
+                                        tint = KynectiaOrange,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else if (onDuplicateClick != null) {
+                        IconButton(
+                            onClick = onDuplicateClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Duplicar y personalizar",
+                                tint = TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

@@ -230,7 +230,7 @@ fun LoginScreen(
                                     email = "admin@kynectia.com"
                                     password = "AdminKynectia2026!"
                                 },
-                                label = { Text("Admin General", fontSize = 11.sp, color = KynectiaOrange) },
+                                label = { Text("Administrador General", fontSize = 11.sp, color = KynectiaOrange) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(containerColor = DarkSurfaceVariant),
                                 border = null
                             )
@@ -246,7 +246,7 @@ fun LoginScreen(
                 onClick = onContinueOffline,
                 colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary)
             ) {
-                Text("Continuar en Modo Offline / Invitado", style = MaterialTheme.typography.bodySmall)
+                Text("Continuar en Modo Sin Conexión / Invitado", style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(20.dp))

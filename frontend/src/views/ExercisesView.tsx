@@ -571,12 +571,26 @@ export const ExercisesView: React.FC = () => {
                           : 'badge-warning'
                       }`}
                     >
-                      {ex.difficulty_level}
+                      {ex.difficulty_level === 'beginner'
+                        ? 'Principiante'
+                        : ex.difficulty_level === 'intermediate'
+                        ? 'Intermedio'
+                        : 'Avanzado'}
                     </span>
                   </td>
                   <td>
                     <span style={{ fontSize: '0.82rem', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
-                      {ex.exercise_type}
+                      {ex.exercise_type === 'strength'
+                        ? 'Fuerza'
+                        : ex.exercise_type === 'cardio'
+                        ? 'Cardio'
+                        : ex.exercise_type === 'flexibility'
+                        ? 'Flexibilidad / Core'
+                        : ex.exercise_type === 'hiit'
+                        ? 'HIIT'
+                        : ex.exercise_type === 'plyometric'
+                        ? 'Pliometría'
+                        : ex.exercise_type}
                     </span>
                   </td>
                   <td>
@@ -611,7 +625,11 @@ export const ExercisesView: React.FC = () => {
                           : 'badge-danger'
                       }`}
                     >
-                      {ex.publication_status}
+                      {ex.publication_status === 'published'
+                        ? 'Publicado'
+                        : ex.publication_status === 'draft'
+                        ? 'Borrador'
+                        : 'Archivado'}
                     </span>
                   </td>
                   <td>
@@ -1002,8 +1020,20 @@ export const ExercisesView: React.FC = () => {
               <div style={{ flex: 1, minWidth: '240px' }}>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                   <span className="badge badge-info">{detailExercise.primary_muscle_name || (detailExercise as any).primary_muscle?.name}</span>
-                  <span className="badge badge-purple">{detailExercise.difficulty_level}</span>
-                  <span className="badge badge-success">{detailExercise.publication_status}</span>
+                  <span className="badge badge-purple">
+                    {detailExercise.difficulty_level === 'beginner'
+                      ? 'Principiante'
+                      : detailExercise.difficulty_level === 'intermediate'
+                      ? 'Intermedio'
+                      : 'Avanzado'}
+                  </span>
+                  <span className="badge badge-success">
+                    {detailExercise.publication_status === 'published'
+                      ? 'Publicado'
+                      : detailExercise.publication_status === 'draft'
+                      ? 'Borrador'
+                      : 'Archivado'}
+                  </span>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
                   {detailExercise.description || 'Sin descripción general.'}

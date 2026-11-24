@@ -582,14 +582,16 @@ export const UsersView: React.FC = () => {
                     {detailUser.subscriptions.map((s) => (
                       <tr key={s.id}>
                         <td style={{ fontWeight: 600 }}>{s.plan_name}</td>
-                        <td style={{ textTransform: 'capitalize' }}>{s.billing_cycle}</td>
+                        <td>
+                          {s.billing_cycle === 'monthly' ? 'Mensual' : s.billing_cycle === 'annual' ? 'Anual' : s.billing_cycle === 'lifetime' ? 'Vitalicio' : s.billing_cycle}
+                        </td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           {new Date(s.start_date).toLocaleDateString()} — {new Date(s.end_date).toLocaleDateString()}
                         </td>
                         <td>${parseFloat(s.price_paid).toFixed(2)} {s.currency}</td>
                         <td>
                           <span className={`badge ${s.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
-                            {s.status}
+                            {s.status === 'active' ? 'Activa' : s.status === 'canceled' ? 'Cancelada' : s.status === 'expired' ? 'Expirada' : s.status}
                           </span>
                         </td>
                       </tr>

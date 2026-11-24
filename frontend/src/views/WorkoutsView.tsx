@@ -239,7 +239,8 @@ export const WorkoutsView: React.FC = () => {
         method: 'PATCH',
         body: { status },
       });
-      showToast('success', `Rutina marcada como ${status}.`);
+      const statusLabel = status === 'draft' ? 'borrador' : status === 'published' ? 'publicada' : 'archivada';
+      showToast('success', `Rutina marcada como ${statusLabel}.`);
       fetchRoutines();
     } catch (err: any) {
       showToast('error', err.message || 'Error al cambiar estado de publicación.');
@@ -404,7 +405,11 @@ export const WorkoutsView: React.FC = () => {
                           : 'badge-warning'
                       }`}
                     >
-                      {r.difficulty_level}
+                      {r.difficulty_level === 'beginner'
+                        ? 'Principiante'
+                        : r.difficulty_level === 'intermediate'
+                        ? 'Intermedio'
+                        : 'Avanzado'}
                     </span>
                   </td>
                   <td>
@@ -426,7 +431,11 @@ export const WorkoutsView: React.FC = () => {
                           : 'badge-danger'
                       }`}
                     >
-                      {r.publication_status}
+                      {r.publication_status === 'published'
+                        ? 'Publicada'
+                        : r.publication_status === 'draft'
+                        ? 'Borrador'
+                        : 'Archivada'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -778,9 +787,31 @@ export const WorkoutsView: React.FC = () => {
               )}
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <span className="badge badge-success">{detailRoutine.publication_status}</span>
-                  <span className="badge badge-purple">{detailRoutine.difficulty_level}</span>
-                  <span className="badge badge-info">{detailRoutine.goal}</span>
+                  <span className="badge badge-success">
+                    {detailRoutine.publication_status === 'published'
+                      ? 'Publicada'
+                      : detailRoutine.publication_status === 'draft'
+                      ? 'Borrador'
+                      : 'Archivada'}
+                  </span>
+                  <span className="badge badge-purple">
+                    {detailRoutine.difficulty_level === 'beginner'
+                      ? 'Principiante'
+                      : detailRoutine.difficulty_level === 'intermediate'
+                      ? 'Intermedio'
+                      : 'Avanzado'}
+                  </span>
+                  <span className="badge badge-info">
+                    {detailRoutine.goal === 'hypertrophy'
+                      ? 'Hipertrofia'
+                      : detailRoutine.goal === 'strength'
+                      ? 'Fuerza'
+                      : detailRoutine.goal === 'fat_loss'
+                      ? 'Quema de Grasa'
+                      : detailRoutine.goal === 'endurance'
+                      ? 'Resistencia'
+                      : 'Movilidad y Salud'}
+                  </span>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5' }}>
                   {detailRoutine.description || 'Sin descripción.'}

@@ -25,6 +25,7 @@ import com.kynectia.app.ui.main.MainScreen
 import com.kynectia.app.ui.player.WorkoutPlayerScreen
 import com.kynectia.app.ui.player.WorkoutPlayerViewModel
 import com.kynectia.app.ui.summary.WorkoutSummaryScreen
+import com.kynectia.app.ui.workouts.create.CreateEditRoutineScreen
 
 @Composable
 fun MainNavigation() {
@@ -118,6 +119,17 @@ fun MainNavigation() {
                             while (backStack.size > 1) {
                                 backStack.removeLastOrNull()
                             }
+                        }
+                    )
+                }
+
+                entry<CreateEditRoutine> { key ->
+                    CreateEditRoutineScreen(
+                        routineId = key.routineId,
+                        repository = repository,
+                        onNavigateBack = { backStack.removeLastOrNull() },
+                        onRoutineSaved = {
+                            backStack.removeLastOrNull()
                         }
                     )
                 }

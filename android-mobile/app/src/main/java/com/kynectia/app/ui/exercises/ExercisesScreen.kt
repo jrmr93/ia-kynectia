@@ -243,7 +243,7 @@ fun ExerciseCard(
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "VIDEO",
+                                text = "VÍDEO",
                                 color = KynectiaLime,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold

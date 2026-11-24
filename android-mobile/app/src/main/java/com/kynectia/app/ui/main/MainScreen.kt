@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavKey
+import com.kynectia.app.CreateEditRoutine
 import com.kynectia.app.Player
 import com.kynectia.app.data.repository.TrainingRepository
 import com.kynectia.app.theme.*
@@ -103,6 +104,12 @@ fun MainScreen(
                         viewModel = workoutsViewModel,
                         onStartWorkout = { routineId ->
                             onItemClick(Player(routineId))
+                        },
+                        onCreateRoutine = {
+                            onItemClick(CreateEditRoutine())
+                        },
+                        onEditRoutine = { routineId ->
+                            onItemClick(CreateEditRoutine(routineId))
                         }
                     )
                 }

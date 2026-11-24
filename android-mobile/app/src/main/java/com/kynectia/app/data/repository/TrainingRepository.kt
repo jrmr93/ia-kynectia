@@ -5,6 +5,7 @@ import android.util.Log
 import com.kynectia.app.data.api.ApiClient
 import com.kynectia.app.data.api.MockDataProvider
 import com.kynectia.app.data.api.SessionManager
+import com.kynectia.app.data.local.CustomRoutinesStorage
 import com.kynectia.app.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +17,12 @@ import kotlinx.coroutines.withTimeoutOrNull
 class TrainingRepository(private val context: Context) {
     private val api = ApiClient.getService(context)
     private val sessionManager = SessionManager.getInstance(context)
+    private val customStorage = CustomRoutinesStorage(context)
 
     // Caché en memoria para carga ultrarrápida instantánea (0ms)
-    private val cachedWorkouts = MutableStateFlow<List<WorkoutRoutine>>(MockDataProvider.mockRoutines)
+    private val cachedWorkouts = MutableStateFlow<List<WorkoutRoutine>>(
+        customStorage.getAll() + MockDataProvider.mockRoutines
+    )
     private val cachedExercises = MutableStateFlow<List<Exercise>>(MockDataProvider.mockExercises)
     private val cachedMuscles = MutableStateFlow<List<MuscleGroup>>(MockDataProvider.mockMuscles)
 
@@ -52,7 +56,11 @@ class TrainingRepository(private val context: Context) {
                 api.getWorkouts(search = search, difficultyLevel = difficultyLevel, category = category)
             }
             if (response?.success == true && !response.data.isNullOrEmpty()) {
-                cachedWorkouts.value = response.data
+                val custom = customStorage.getAll()
+                val backendData = response.data
+                // Combinar custom routines primero, luego remotas evitando duplicados
+                val combined = custom + backendData.filter { b -> custom.none { c -> c.id == b.id } }
+                cachedWorkouts.value = combined
                 _isOfflineOrFallback.value = false
             } else if (response == null) {
                 _isOfflineOrFallback.value = true
@@ -73,7 +81,13 @@ class TrainingRepository(private val context: Context) {
     }
 
     suspend fun getWorkoutDetail(id: Int): WorkoutRoutine? = withContext(Dispatchers.IO) {
-        // Consultar primero al backend para obtener los ejercicios reales actualizados de PostgreSQL
+        // Primero verificar si es una rutina personalizada guardada por el usuario
+        val custom = customStorage.getById(id)
+        if (custom != null) {
+            return@withContext custom
+        }
+
+        // Consultar al backend para rutinas estándar
         try {
             val response = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) {
                 api.getWorkoutById(id)
@@ -169,7 +183,9 @@ class TrainingRepository(private val context: Context) {
         try {
             val workouts = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) { api.getWorkouts() }
             if (workouts?.success == true && !workouts.data.isNullOrEmpty()) {
-                cachedWorkouts.value = workouts.data
+                val custom = customStorage.getAll()
+                val backendData = workouts.data
+                cachedWorkouts.value = custom + backendData.filter { b -> custom.none { c -> c.id == b.id } }
                 _isOfflineOrFallback.value = false
             }
             val exercises = withTimeoutOrNull(FAST_NETWORK_TIMEOUT_MS) { api.getExercises() }
@@ -184,6 +200,25 @@ class TrainingRepository(private val context: Context) {
             Log.d(TAG, "Error sincronizando datos reales del backend: ${e.message}")
             _isOfflineOrFallback.value = true
         }
+    }
+
+    suspend fun saveCustomWorkout(routine: WorkoutRoutine): WorkoutRoutine = withContext(Dispatchers.IO) {
+        val saved = customStorage.save(routine)
+        val current = cachedWorkouts.value.filter { it.id != saved.id }
+        cachedWorkouts.value = listOf(saved) + current
+        return@withContext saved
+    }
+
+    suspend fun deleteCustomWorkout(id: Int): Boolean = withContext(Dispatchers.IO) {
+        val deleted = customStorage.delete(id)
+        if (deleted) {
+            cachedWorkouts.value = cachedWorkouts.value.filter { it.id != id }
+        }
+        return@withContext deleted
+    }
+
+    fun getCustomWorkouts(): List<WorkoutRoutine> {
+        return customStorage.getAll()
     }
 
     /**

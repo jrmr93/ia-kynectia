@@ -16,6 +16,8 @@ data class WorkoutsUiState(
     val routines: List<WorkoutRoutine> = MockDataProvider.mockRoutines,
     val searchQuery: String = "",
     val selectedDifficulty: String? = null,
+    val showOnlyCustom: Boolean = false,
+    val customCount: Int = 0,
     val errorMessage: String? = null
 )
 
@@ -31,11 +33,25 @@ class WorkoutsViewModel(private val repository: TrainingRepository) : ViewModel(
     fun loadRoutines() {
         viewModelScope.launch {
             try {
-                val list = repository.getWorkouts(
+                val customRoutines = repository.getCustomWorkouts()
+                val allList = repository.getWorkouts(
                     search = _uiState.value.searchQuery.ifBlank { null },
                     difficultyLevel = _uiState.value.selectedDifficulty
                 )
-                _uiState.update { it.copy(isLoading = false, routines = list) }
+
+                val displayList = if (_uiState.value.showOnlyCustom) {
+                    allList.filter { it.is_custom }
+                } else {
+                    allList
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        routines = displayList,
+                        customCount = customRoutines.size
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
@@ -48,7 +64,37 @@ class WorkoutsViewModel(private val repository: TrainingRepository) : ViewModel(
     }
 
     fun onDifficultySelected(difficulty: String?) {
-        _uiState.update { it.copy(selectedDifficulty = difficulty) }
+        _uiState.update { it.copy(selectedDifficulty = difficulty, showOnlyCustom = false) }
         loadRoutines()
+    }
+
+    fun onShowOnlyCustomSelected() {
+        _uiState.update { it.copy(showOnlyCustom = true, selectedDifficulty = null) }
+        loadRoutines()
+    }
+
+    fun onShowAllSelected() {
+        _uiState.update { it.copy(showOnlyCustom = false, selectedDifficulty = null) }
+        loadRoutines()
+    }
+
+    fun deleteRoutine(routineId: Int) {
+        viewModelScope.launch {
+            repository.deleteCustomWorkout(routineId)
+            loadRoutines()
+        }
+    }
+
+    fun duplicateRoutine(routine: WorkoutRoutine) {
+        viewModelScope.launch {
+            val duplicated = routine.copy(
+                id = 0,
+                name = "${routine.name} (Mi versión)",
+                description = routine.description ?: "Rutina personalizada basada en ${routine.name}",
+                is_custom = true
+            )
+            repository.saveCustomWorkout(duplicated)
+            loadRoutines()
+        }
     }
 }

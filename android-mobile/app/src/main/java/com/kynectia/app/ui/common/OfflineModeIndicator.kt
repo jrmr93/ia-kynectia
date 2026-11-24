@@ -67,7 +67,7 @@ fun OfflineModeIndicator(
             // Icono de nube desconectada
             Icon(
                 imageVector = Icons.Default.CloudOff,
-                contentDescription = "Modo Offline",
+                contentDescription = "Modo Sin Conexión",
                 tint = WarningAmber,
                 modifier = Modifier.size(13.dp)
             )
@@ -82,7 +82,7 @@ fun OfflineModeIndicator(
 
             // Etiqueta compacta
             Text(
-                text = "Offline",
+                text = "Sin conexión",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = WarningAmber,
@@ -134,7 +134,7 @@ fun OfflineInfoDialog(
                 }
                 Column {
                     Text(
-                        text = "Modo Local / Fallback",
+                        text = "Modo Sin Conexión / Local",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary

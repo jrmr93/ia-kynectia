@@ -253,8 +253,8 @@ export const DashboardView: React.FC = () => {
                 >
                   <div>
                     <p style={{ fontWeight: 600, color: '#ffffff', fontSize: '0.9rem' }}>{plan.plan_name}</p>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                      Ciclo: {plan.billing_cycle}
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Ciclo: {plan.billing_cycle === 'monthly' ? 'Mensual' : plan.billing_cycle === 'annual' ? 'Anual' : plan.billing_cycle === 'lifetime' ? 'Vitalicio' : plan.billing_cycle === 'free' ? 'Gratuito' : plan.billing_cycle}
                     </span>
                   </div>
                   <span className="badge badge-success" style={{ fontSize: '0.82rem' }}>
