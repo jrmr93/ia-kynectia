@@ -5,11 +5,7 @@ import android.app.Application
 import android.content.pm.ActivityInfo
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.kynectia.tv.data.TvApiClient
-import com.kynectia.tv.data.TvCommandRequest
-import com.kynectia.tv.data.TvLiveWorkoutState
-import com.kynectia.tv.data.TvSessionStorage
-import com.kynectia.tv.data.TvWorkoutSummary
+import com.kynectia.tv.data.*
 import com.kynectia.tv.sound.TvSoundManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -28,6 +24,16 @@ enum class TvDisplayOrientation(val label: String, val rotationDegrees: Float, v
 
 sealed interface TvUiState {
     object Loading : TvUiState
+
+    data class RoutinesCatalog(
+        val routines: List<WorkoutRoutine>,
+        val selectedCategory: String? = null,
+        val selectedDifficulty: String? = null,
+        val isLoading: Boolean = false,
+        val isOffline: Boolean = false,
+        val selectedRoutine: WorkoutRoutine? = null
+    ) : TvUiState
+
     data class Pairing(
         val sessionId: String,
         val pinCode: String,
@@ -44,20 +50,24 @@ sealed interface TvUiState {
     data class LiveWorkout(
         val sessionId: String,
         val athleteName: String,
-        val state: TvLiveWorkoutState
+        val state: TvLiveWorkoutState,
+        val isStandalone: Boolean = false
     ) : TvUiState
 
     data class Summary(
         val sessionId: String,
         val athleteName: String,
         val routineName: String,
-        val summary: TvWorkoutSummary
+        val summary: TvWorkoutSummary,
+        val isStandalone: Boolean = false
     ) : TvUiState
 
     data class Error(val message: String) : TvUiState
 }
 
 class TvViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = TvTrainingRepository(application.applicationContext)
 
     private val _uiState = MutableStateFlow<TvUiState>(TvUiState.Loading)
     val uiState: StateFlow<TvUiState> = _uiState.asStateFlow()
@@ -68,12 +78,30 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSoundEnabled = MutableStateFlow(true)
     val isSoundEnabled: StateFlow<Boolean> = _isSoundEnabled.asStateFlow()
 
+    val isOfflineMode: StateFlow<Boolean> = TvTrainingRepository.isOffline
+
     private var currentSessionId: String? = null
     private var pollingJob: Job? = null
     private var localTickerJob: Job? = null
     private var lastFinishedCelebrated: Boolean = false
     private var lastAppliedRotateCount: Int = -1
     private var hasCelebratedConnection: Boolean = false
+
+    // Estado del motor de entrenamiento autónomo en TV
+    private var isStandaloneWorkout: Boolean = false
+    private var activeRoutine: WorkoutRoutine? = null
+    private var currentExerciseIndex: Int = 0
+    private var currentSetNumber: Int = 1
+    private var currentWeightKg: Double = 50.0
+    private var currentReps: Int = 10
+    private var isResting: Boolean = false
+    private var restSecondsRemaining: Int = 60
+    private var restSecondsTotal: Int = 60
+    private var elapsedWorkoutSeconds: Int = 0
+    private var isPaused: Boolean = false
+    private val completedSetsHistory = mutableListOf<CompletedSet>()
+    private var standaloneTickerJob: Job? = null
+    private var standaloneRestJob: Job? = null
 
     init {
         TvSessionStorage.init(application.applicationContext)
@@ -104,12 +132,290 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
+     * Abre el catálogo de rutinas para entrenamiento directo y autónomo en la TV.
+     */
+    fun openRoutinesCatalog(category: String? = null, difficulty: String? = null) {
+        pollingJob?.cancel()
+        localTickerJob?.cancel()
+        viewModelScope.launch {
+            val routines = repository.getWorkouts(
+                difficultyLevel = difficulty,
+                category = category
+            )
+            _uiState.value = TvUiState.RoutinesCatalog(
+                routines = routines,
+                selectedCategory = category,
+                selectedDifficulty = difficulty,
+                isLoading = false,
+                isOffline = TvTrainingRepository.isOffline.value,
+                selectedRoutine = routines.firstOrNull()
+            )
+        }
+    }
+
+    fun selectRoutineInCatalog(routine: WorkoutRoutine) {
+        val current = _uiState.value
+        if (current is TvUiState.RoutinesCatalog) {
+            _uiState.value = current.copy(selectedRoutine = routine)
+        }
+    }
+
+    /**
+     * Inicia una rutina de forma autónoma en la TV (sin requerir móvil conectado).
+     */
+    fun startStandaloneWorkout(routine: WorkoutRoutine) {
+        pollingJob?.cancel()
+        localTickerJob?.cancel()
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
+
+        isStandaloneWorkout = true
+        activeRoutine = routine
+        currentExerciseIndex = 0
+        currentSetNumber = 1
+        val firstEx = routine.exercises.firstOrNull()
+        currentWeightKg = firstEx?.recommended_weight_kg ?: 50.0
+        currentReps = if ((firstEx?.reps ?: 0) > 0) firstEx!!.reps else 10
+        restSecondsTotal = if ((firstEx?.rest_seconds ?: 0) > 0) firstEx!!.rest_seconds else 60
+        restSecondsRemaining = restSecondsTotal
+        isResting = false
+        isPaused = false
+        elapsedWorkoutSeconds = 0
+        completedSetsHistory.clear()
+
+        TvSoundManager.playConnectedSound()
+        publishStandaloneLiveState()
+        startStandaloneTimer()
+    }
+
+    private fun buildStandaloneState(): TvLiveWorkoutState {
+        val routine = activeRoutine
+        val exercises = routine?.exercises ?: emptyList()
+        val currentEx = exercises.getOrNull(currentExerciseIndex)
+
+        return TvLiveWorkoutState(
+            routineName = routine?.name ?: "RUTINA EN TV",
+            exerciseName = currentEx?.exercise_name ?: "Ejercicio",
+            demoImageUrl = currentEx?.demo_image_url,
+            demoVideoUrl = currentEx?.demo_video_url,
+            currentExerciseIndex = currentExerciseIndex,
+            totalExercises = exercises.size.coerceAtLeast(1),
+            currentSetNumber = currentSetNumber,
+            totalSets = currentEx?.sets ?: 3,
+            reps = currentReps,
+            weightKg = currentWeightKg,
+            isResting = isResting,
+            restSecondsRemaining = restSecondsRemaining,
+            restSecondsTotal = restSecondsTotal,
+            elapsedWorkoutSeconds = elapsedWorkoutSeconds,
+            isPaused = isPaused,
+            isFinished = false,
+            lastUpdated = System.currentTimeMillis()
+        )
+    }
+
+    private fun publishStandaloneLiveState() {
+        if (!isStandaloneWorkout) return
+        _uiState.value = TvUiState.LiveWorkout(
+            sessionId = "standalone",
+            athleteName = "Atleta TV",
+            state = buildStandaloneState(),
+            isStandalone = true
+        )
+    }
+
+    private fun startStandaloneTimer() {
+        standaloneTickerJob?.cancel()
+        standaloneTickerJob = viewModelScope.launch {
+            while (isStandaloneWorkout) {
+                delay(1000)
+                if (!isPaused) {
+                    elapsedWorkoutSeconds++
+                    publishStandaloneLiveState()
+                }
+            }
+        }
+    }
+
+    /**
+     * Registra la serie actual en modo autónomo y activa la cuenta regresiva de descanso.
+     */
+    fun logStandaloneSet() {
+        if (!isStandaloneWorkout || isResting) return
+
+        completedSetsHistory.add(
+            CompletedSet(
+                setNumber = currentSetNumber,
+                targetReps = currentReps,
+                completedReps = currentReps,
+                weightKg = currentWeightKg
+            )
+        )
+
+        TvSoundManager.playCountdownBeep()
+
+        val routine = activeRoutine
+        val currentEx = routine?.exercises?.getOrNull(currentExerciseIndex)
+        val restDuration = if ((currentEx?.rest_seconds ?: 0) > 0) currentEx!!.rest_seconds else 60
+
+        isResting = true
+        restSecondsTotal = restDuration
+        restSecondsRemaining = restDuration
+        publishStandaloneLiveState()
+
+        standaloneRestJob?.cancel()
+        standaloneRestJob = viewModelScope.launch {
+            while (isResting && restSecondsRemaining > 0) {
+                delay(1000)
+                if (!isPaused) {
+                    restSecondsRemaining--
+                    TvSoundManager.checkRestTimerSound(restSecondsRemaining, true)
+                    publishStandaloneLiveState()
+                }
+            }
+            if (isResting && restSecondsRemaining <= 0) {
+                advanceToNextSetOrExercise()
+            }
+        }
+    }
+
+    /**
+     * Salta el tiempo de descanso restante y pasa a la siguiente serie o ejercicio.
+     */
+    fun skipStandaloneRest() {
+        if (!isStandaloneWorkout || !isResting) return
+        standaloneRestJob?.cancel()
+        TvSoundManager.playCountdownBeep()
+        advanceToNextSetOrExercise()
+    }
+
+    private fun advanceToNextSetOrExercise() {
+        isResting = false
+        val routine = activeRoutine ?: return
+        val currentEx = routine.exercises.getOrNull(currentExerciseIndex) ?: return
+        val maxSets = if (currentEx.sets > 0) currentEx.sets else 3
+
+        if (currentSetNumber < maxSets) {
+            currentSetNumber++
+        } else {
+            // Siguiente ejercicio
+            if (currentExerciseIndex < routine.exercises.size - 1) {
+                currentExerciseIndex++
+                currentSetNumber = 1
+                val nextEx = routine.exercises[currentExerciseIndex]
+                currentWeightKg = nextEx.recommended_weight_kg ?: currentWeightKg
+                currentReps = if (nextEx.reps > 0) nextEx.reps else 10
+                restSecondsTotal = if (nextEx.rest_seconds > 0) nextEx.rest_seconds else 60
+            } else {
+                // Rutina completada con éxito
+                finishStandaloneWorkout()
+                return
+            }
+        }
+        publishStandaloneLiveState()
+    }
+
+    fun adjustWeight(deltaKg: Double) {
+        if (!isStandaloneWorkout || isResting) return
+        currentWeightKg = (currentWeightKg + deltaKg).coerceAtLeast(0.0)
+        publishStandaloneLiveState()
+    }
+
+    fun adjustReps(deltaReps: Int) {
+        if (!isStandaloneWorkout || isResting) return
+        currentReps = (currentReps + deltaReps).coerceAtLeast(1)
+        publishStandaloneLiveState()
+    }
+
+    fun toggleWorkoutPause() {
+        if (isStandaloneWorkout) {
+            isPaused = !isPaused
+            publishStandaloneLiveState()
+        } else {
+            sendRemoteCommand("TOGGLE_PAUSE")
+        }
+    }
+
+    fun nextExercise() {
+        if (isStandaloneWorkout) {
+            val routine = activeRoutine ?: return
+            if (currentExerciseIndex < routine.exercises.size - 1) {
+                standaloneRestJob?.cancel()
+                isResting = false
+                currentExerciseIndex++
+                currentSetNumber = 1
+                val nextEx = routine.exercises[currentExerciseIndex]
+                currentWeightKg = nextEx.recommended_weight_kg ?: currentWeightKg
+                currentReps = if (nextEx.reps > 0) nextEx.reps else 10
+                restSecondsTotal = if (nextEx.rest_seconds > 0) nextEx.rest_seconds else 60
+                publishStandaloneLiveState()
+            }
+        } else {
+            sendRemoteCommand("NEXT_EXERCISE")
+        }
+    }
+
+    fun previousExercise() {
+        if (isStandaloneWorkout) {
+            val routine = activeRoutine ?: return
+            if (currentExerciseIndex > 0) {
+                standaloneRestJob?.cancel()
+                isResting = false
+                currentExerciseIndex--
+                currentSetNumber = 1
+                val prevEx = routine.exercises[currentExerciseIndex]
+                currentWeightKg = prevEx.recommended_weight_kg ?: currentWeightKg
+                currentReps = if (prevEx.reps > 0) prevEx.reps else 10
+                restSecondsTotal = if (prevEx.rest_seconds > 0) prevEx.rest_seconds else 60
+                publishStandaloneLiveState()
+            }
+        } else {
+            sendRemoteCommand("PREV_EXERCISE")
+        }
+    }
+
+    fun finishStandaloneWorkout() {
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
+        isStandaloneWorkout = false
+
+        val routine = activeRoutine
+        val totalVolume = completedSetsHistory.sumOf { it.completedReps * it.weightKg }
+        val summary = TvWorkoutSummary(
+            totalDurationSeconds = elapsedWorkoutSeconds,
+            totalSetsCompleted = completedSetsHistory.size,
+            totalVolumeKg = totalVolume
+        )
+
+        TvSoundManager.playWorkoutFinished()
+
+        _uiState.value = TvUiState.Summary(
+            sessionId = "standalone",
+            athleteName = "Atleta TV",
+            routineName = routine?.name ?: "Rutina TV",
+            summary = summary,
+            isStandalone = true
+        )
+    }
+
+    fun exitWorkoutToCatalog() {
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
+        isStandaloneWorkout = false
+        openRoutinesCatalog()
+    }
+
+    /**
      * Restaura la última sesión enlazada de Android TV si existe y no ha sido cerrada,
-     * permitiendo que al reiniciar la app continúe conectada automáticamente.
+     * o genera una nueva sesión de vinculación. Si no hay conexión a internet,
+     * abre directamente el catálogo de rutinas en modo sin conexión.
      */
     fun restoreOrInitSession() {
         pollingJob?.cancel()
         localTickerJob?.cancel()
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
+        isStandaloneWorkout = false
         lastFinishedCelebrated = false
         lastAppliedRotateCount = -1
         hasCelebratedConnection = false
@@ -183,15 +489,8 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                if (e is retrofit2.HttpException && e.code() == 404) {
-                    TvSessionStorage.clearSession()
-                    createTvSession()
-                } else {
-                    // Si hubo error de red temporal (por ejemplo Wi-Fi arrancando), reintentar sin borrar la sesión guardada
-                    _uiState.value = TvUiState.Error("Reconectando a la última sesión... (${e.localizedMessage})")
-                    delay(2000)
-                    restoreOrInitSession()
-                }
+                // Si no hay red, abrir catálogo en modo offline en lugar de pantalla de error bloqueante
+                openRoutinesCatalog()
             }
         }
     }
@@ -230,11 +529,13 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                     startPolling(session.sessionId)
                     startLocalTicker()
                 } else {
-                    _uiState.value = TvUiState.Error(response.message ?: "No se pudo crear la sesión de TV")
+                    // Fallback transparente al catálogo si el backend responde con error
+                    openRoutinesCatalog()
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _uiState.value = TvUiState.Error("Error de conexión con el servidor: ${e.localizedMessage}")
+                // Servidor no disponible o modo sin conexión -> abrir catálogo offline automáticamente
+                openRoutinesCatalog()
             }
         }
     }
@@ -250,21 +551,15 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                         val status = res.data
                         val athlete = status.pairedAthleteName ?: "Atleta"
 
-                        // Sincronizar giro de pantalla si se solicitó remotamente desde el móvil
                         if (lastAppliedRotateCount == -1) {
                             lastAppliedRotateCount = status.rotateCount
                         } else if (status.rotateCount > lastAppliedRotateCount) {
-                            val diff = status.rotateCount - lastAppliedRotateCount
                             lastAppliedRotateCount = status.rotateCount
                             if (status.orientation != null) {
                                 val target = TvDisplayOrientation.entries.find { it.name == status.orientation }
-                                if (target != null) {
-                                    setOrientation(target)
-                                } else {
-                                    repeat(diff) { cycleOrientation() }
-                                }
+                                if (target != null) _orientationMode.value = target
                             } else {
-                                repeat(diff) { cycleOrientation() }
+                                cycleOrientation()
                             }
                         }
 
@@ -273,7 +568,6 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                             hasCelebratedConnection = true
                             val liveState = status.state
 
-                            // Reproducir efectos de sonido correspondientes
                             if (liveState.isFinished) {
                                 if (!lastFinishedCelebrated) {
                                     lastFinishedCelebrated = true
@@ -302,7 +596,6 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                             }
                         } else if (status.isPaired && status.state == null) {
                             TvSessionStorage.updatePairedStatus(isPaired = true, athleteName = athlete)
-                            // Pantalla vinculada esperando inicio del entrenamiento desde la app móvil
                             if (!hasCelebratedConnection) {
                                 hasCelebratedConnection = true
                                 TvSoundManager.playConnectedSound()
@@ -315,7 +608,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                         } else if (!status.isPaired) {
                             hasCelebratedConnection = false
                             val current = _uiState.value
-                            if (current !is TvUiState.Pairing) {
+                            if (current !is TvUiState.Pairing && current !is TvUiState.RoutinesCatalog && current !is TvUiState.LiveWorkout) {
                                 _uiState.value = TvUiState.Pairing(
                                     sessionId = status.sessionId,
                                     pinCode = status.pinCode,
@@ -327,7 +620,6 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     if (e is retrofit2.HttpException && e.code() == 404) {
-                        // Sesión cerrada o desconectada en el servidor
                         TvSessionStorage.clearSession()
                         createTvSession()
                         return@launch
@@ -338,17 +630,13 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Ticker local en segundo plano para asegurar que los pitidos del temporizador (3, 2, 1, 0)
-     * se ejecuten puntualmente cada segundo sin depender de la latencia de red.
-     */
     private fun startLocalTicker() {
         localTickerJob?.cancel()
         localTickerJob = viewModelScope.launch {
             while (true) {
                 delay(1000)
                 val current = _uiState.value
-                if (current is TvUiState.LiveWorkout) {
+                if (current is TvUiState.LiveWorkout && !current.isStandalone) {
                     val state = current.state
                     if (state.isResting && !state.isPaused && state.restSecondsRemaining > 0) {
                         val newRemaining = state.restSecondsRemaining - 1
@@ -362,14 +650,10 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Envía comandos del control remoto hacia el backend
-     */
     fun sendRemoteCommand(command: String) {
         val sessionId = currentSessionId ?: return
         viewModelScope.launch {
             try {
-                // Actualización optimista local
                 val current = _uiState.value
                 if (current is TvUiState.LiveWorkout) {
                     when (command) {
@@ -396,10 +680,18 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
     fun handleDpadCenter() {
         val current = _uiState.value
         if (current is TvUiState.LiveWorkout) {
-            if (current.state.isResting) {
-                sendRemoteCommand("SKIP_REST")
+            if (current.isStandalone) {
+                if (current.state.isResting) {
+                    skipStandaloneRest()
+                } else {
+                    logStandaloneSet()
+                }
             } else {
-                sendRemoteCommand("TOGGLE_PAUSE")
+                if (current.state.isResting) {
+                    sendRemoteCommand("SKIP_REST")
+                } else {
+                    sendRemoteCommand("TOGGLE_PAUSE")
+                }
             }
         }
     }
@@ -407,26 +699,59 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
     fun handleDpadRight() {
         val current = _uiState.value
         if (current is TvUiState.LiveWorkout) {
-            if (current.state.isResting) {
-                sendRemoteCommand("SKIP_REST")
+            if (current.isStandalone) {
+                if (current.state.isResting) {
+                    skipStandaloneRest()
+                } else {
+                    nextExercise()
+                }
             } else {
-                sendRemoteCommand("NEXT_EXERCISE")
+                if (current.state.isResting) {
+                    sendRemoteCommand("SKIP_REST")
+                } else {
+                    sendRemoteCommand("NEXT_EXERCISE")
+                }
             }
         }
     }
 
     fun handleDpadLeft() {
-        sendRemoteCommand("PREV_EXERCISE")
+        val current = _uiState.value
+        if (current is TvUiState.LiveWorkout) {
+            if (current.isStandalone) {
+                previousExercise()
+            } else {
+                sendRemoteCommand("PREV_EXERCISE")
+            }
+        }
     }
 
-    /**
-     * Desconexión manual explícita
-     */
+    fun handleDpadUp(): Boolean {
+        val current = _uiState.value
+        if (current is TvUiState.LiveWorkout && current.isStandalone && !current.state.isResting) {
+            adjustWeight(2.5)
+            return true
+        }
+        return false
+    }
+
+    fun handleDpadDown(): Boolean {
+        val current = _uiState.value
+        if (current is TvUiState.LiveWorkout && current.isStandalone && !current.state.isResting) {
+            adjustWeight(-2.5)
+            return true
+        }
+        return false
+    }
+
     fun disconnect() {
         val sessionId = currentSessionId
         TvSessionStorage.clearSession()
         pollingJob?.cancel()
         localTickerJob?.cancel()
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
+        isStandaloneWorkout = false
         _uiState.value = TvUiState.Loading
         viewModelScope.launch {
             if (sessionId != null) {
@@ -442,5 +767,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         pollingJob?.cancel()
         localTickerJob?.cancel()
+        standaloneTickerJob?.cancel()
+        standaloneRestJob?.cancel()
     }
 }

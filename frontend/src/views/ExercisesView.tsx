@@ -563,19 +563,18 @@ export const ExercisesView: React.FC = () => {
                   </td>
                   <td>
                     <span
-                      className={`badge ${
-                        ex.difficulty_level === 'beginner'
-                          ? 'badge-success'
-                          : ex.difficulty_level === 'intermediate'
+                      className={`badge ${ex.difficulty_level === 'beginner'
+                        ? 'badge-success'
+                        : ex.difficulty_level === 'intermediate'
                           ? 'badge-info'
                           : 'badge-warning'
-                      }`}
+                        }`}
                     >
                       {ex.difficulty_level === 'beginner'
                         ? 'Principiante'
                         : ex.difficulty_level === 'intermediate'
-                        ? 'Intermedio'
-                        : 'Avanzado'}
+                          ? 'Intermedio'
+                          : 'Avanzado'}
                     </span>
                   </td>
                   <td>
@@ -583,14 +582,14 @@ export const ExercisesView: React.FC = () => {
                       {ex.exercise_type === 'strength'
                         ? 'Fuerza'
                         : ex.exercise_type === 'cardio'
-                        ? 'Cardio'
-                        : ex.exercise_type === 'flexibility'
-                        ? 'Flexibilidad / Core'
-                        : ex.exercise_type === 'hiit'
-                        ? 'HIIT'
-                        : ex.exercise_type === 'plyometric'
-                        ? 'Pliometría'
-                        : ex.exercise_type}
+                          ? 'Cardio'
+                          : ex.exercise_type === 'flexibility'
+                            ? 'Flexibilidad / Core'
+                            : ex.exercise_type === 'hiit'
+                              ? 'HIIT'
+                              : ex.exercise_type === 'plyometric'
+                                ? 'Pliometría'
+                                : ex.exercise_type}
                     </span>
                   </td>
                   <td>
@@ -617,19 +616,18 @@ export const ExercisesView: React.FC = () => {
                   </td>
                   <td>
                     <span
-                      className={`badge ${
-                        ex.publication_status === 'published'
-                          ? 'badge-success'
-                          : ex.publication_status === 'draft'
+                      className={`badge ${ex.publication_status === 'published'
+                        ? 'badge-success'
+                        : ex.publication_status === 'draft'
                           ? 'badge-warning'
                           : 'badge-danger'
-                      }`}
+                        }`}
                     >
                       {ex.publication_status === 'published'
                         ? 'Publicado'
                         : ex.publication_status === 'draft'
-                        ? 'Borrador'
-                        : 'Archivado'}
+                          ? 'Borrador'
+                          : 'Archivado'}
                     </span>
                   </td>
                   <td>
@@ -1024,15 +1022,15 @@ export const ExercisesView: React.FC = () => {
                     {detailExercise.difficulty_level === 'beginner'
                       ? 'Principiante'
                       : detailExercise.difficulty_level === 'intermediate'
-                      ? 'Intermedio'
-                      : 'Avanzado'}
+                        ? 'Intermedio'
+                        : 'Avanzado'}
                   </span>
                   <span className="badge badge-success">
                     {detailExercise.publication_status === 'published'
                       ? 'Publicado'
                       : detailExercise.publication_status === 'draft'
-                      ? 'Borrador'
-                      : 'Archivado'}
+                        ? 'Borrador'
+                        : 'Archivado'}
                   </span>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>

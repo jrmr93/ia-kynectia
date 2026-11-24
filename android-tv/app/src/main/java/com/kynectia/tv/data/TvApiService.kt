@@ -24,6 +24,19 @@ interface TvApiService {
 
     @POST("tv/command")
     suspend fun sendRemoteCommand(@Body body: TvCommandRequest): ApiResponse<TvCommandResponse>
+
+    @GET("workouts")
+    suspend fun getWorkouts(
+        @Query("search") search: String? = null,
+        @Query("difficulty_level") difficultyLevel: String? = null,
+        @Query("category") category: String? = null
+    ): ApiResponse<List<WorkoutRoutine>>
+
+    @GET("workouts/{id}")
+    suspend fun getWorkoutById(@Path("id") id: Int): ApiResponse<WorkoutRoutine>
+
+    @GET("exercises")
+    suspend fun getExercises(): ApiResponse<List<Exercise>>
 }
 
 object TvApiClient {

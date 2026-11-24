@@ -397,19 +397,18 @@ export const WorkoutsView: React.FC = () => {
                   </td>
                   <td>
                     <span
-                      className={`badge ${
-                        r.difficulty_level === 'beginner'
-                          ? 'badge-success'
-                          : r.difficulty_level === 'intermediate'
+                      className={`badge ${r.difficulty_level === 'beginner'
+                        ? 'badge-success'
+                        : r.difficulty_level === 'intermediate'
                           ? 'badge-info'
                           : 'badge-warning'
-                      }`}
+                        }`}
                     >
                       {r.difficulty_level === 'beginner'
                         ? 'Principiante'
                         : r.difficulty_level === 'intermediate'
-                        ? 'Intermedio'
-                        : 'Avanzado'}
+                          ? 'Intermedio'
+                          : 'Avanzado'}
                     </span>
                   </td>
                   <td>
@@ -423,19 +422,18 @@ export const WorkoutsView: React.FC = () => {
                   </td>
                   <td>
                     <span
-                      className={`badge ${
-                        r.publication_status === 'published'
-                          ? 'badge-success'
-                          : r.publication_status === 'draft'
+                      className={`badge ${r.publication_status === 'published'
+                        ? 'badge-success'
+                        : r.publication_status === 'draft'
                           ? 'badge-warning'
                           : 'badge-danger'
-                      }`}
+                        }`}
                     >
                       {r.publication_status === 'published'
                         ? 'Publicada'
                         : r.publication_status === 'draft'
-                        ? 'Borrador'
-                        : 'Archivada'}
+                          ? 'Borrador'
+                          : 'Archivada'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -791,26 +789,26 @@ export const WorkoutsView: React.FC = () => {
                     {detailRoutine.publication_status === 'published'
                       ? 'Publicada'
                       : detailRoutine.publication_status === 'draft'
-                      ? 'Borrador'
-                      : 'Archivada'}
+                        ? 'Borrador'
+                        : 'Archivada'}
                   </span>
                   <span className="badge badge-purple">
                     {detailRoutine.difficulty_level === 'beginner'
                       ? 'Principiante'
                       : detailRoutine.difficulty_level === 'intermediate'
-                      ? 'Intermedio'
-                      : 'Avanzado'}
+                        ? 'Intermedio'
+                        : 'Avanzado'}
                   </span>
                   <span className="badge badge-info">
                     {detailRoutine.goal === 'hypertrophy'
                       ? 'Hipertrofia'
                       : detailRoutine.goal === 'strength'
-                      ? 'Fuerza'
-                      : detailRoutine.goal === 'fat_loss'
-                      ? 'Quema de Grasa'
-                      : detailRoutine.goal === 'endurance'
-                      ? 'Resistencia'
-                      : 'Movilidad y Salud'}
+                        ? 'Fuerza'
+                        : detailRoutine.goal === 'fat_loss'
+                          ? 'Quema de Grasa'
+                          : detailRoutine.goal === 'endurance'
+                            ? 'Resistencia'
+                            : 'Movilidad y Salud'}
                   </span>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5' }}>

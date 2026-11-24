@@ -47,7 +47,8 @@ fun TvPairingScreen(
     isSoundEnabled: Boolean,
     onRefreshCode: () -> Unit,
     onRotateScreen: () -> Unit,
-    onToggleSound: () -> Unit
+    onToggleSound: () -> Unit,
+    onOpenCatalog: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val alphaAnim by infiniteTransition.animateFloat(
@@ -87,6 +88,13 @@ fun TvPairingScreen(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TvRemoteActionButton(
+                        icon = Icons.Default.FitnessCenter,
+                        label = "Catálogo",
+                        shortcutKey = "C",
+                        isPrimary = true,
+                        onClick = onOpenCatalog
+                    )
                     TvRemoteActionButton(
                         icon = Icons.Default.ScreenRotation,
                         label = "Girar",
@@ -276,6 +284,14 @@ fun TvPairingScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TvRemoteActionButton(
+                            icon = Icons.Default.FitnessCenter,
+                            label = "Entrenar en TV",
+                            shortcutKey = "C",
+                            isPrimary = true,
+                            onClick = onOpenCatalog
+                        )
+
                         TvRemoteActionButton(
                             icon = Icons.Default.Refresh,
                             label = "Nuevo Código",

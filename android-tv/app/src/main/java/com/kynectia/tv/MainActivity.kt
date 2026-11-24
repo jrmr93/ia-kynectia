@@ -18,22 +18,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kynectia.tv.theme.DarkBackground
-import com.kynectia.tv.theme.KynectiaLime
-import com.kynectia.tv.theme.KynectiaOrange
-import com.kynectia.tv.theme.KynectiaTvTheme
-import com.kynectia.tv.theme.TextPrimary
-import com.kynectia.tv.theme.TextSecondary
+import com.kynectia.tv.theme.*
 import com.kynectia.tv.ui.TvDisplayOrientation
 import com.kynectia.tv.ui.TvUiState
 import com.kynectia.tv.ui.TvViewModel
-import com.kynectia.tv.ui.pairing.TvPairingScreen
+import com.kynectia.tv.ui.catalog.TvRoutinesCatalogScreen
 import com.kynectia.tv.ui.connected.TvConnectedScreen
+import com.kynectia.tv.ui.pairing.TvPairingScreen
 import com.kynectia.tv.ui.summary.TvSummaryScreen
 import com.kynectia.tv.ui.workout.TvLiveWorkoutScreen
 
@@ -58,7 +53,6 @@ class MainActivity : ComponentActivity() {
                             orientationMode == TvDisplayOrientation.VERTICAL_270
 
                     val contentModifier = if (isRotatedSoftware) {
-                        // Invertimos las dimensiones desvinculándolas de las restricciones del padre para que el layout vertical 9:16 ocupe el ancho y alto del TV al 100%
                         Modifier
                             .align(Alignment.Center)
                             .requiredSize(width = maxHeight, height = maxWidth)
@@ -78,6 +72,27 @@ class MainActivity : ComponentActivity() {
                                 is TvUiState.Loading -> {
                                     TvLoadingScreen()
                                 }
+                                is TvUiState.RoutinesCatalog -> {
+                                    TvRoutinesCatalogScreen(
+                                        routines = state.routines,
+                                        selectedCategory = state.selectedCategory,
+                                        selectedDifficulty = state.selectedDifficulty,
+                                        isOffline = state.isOffline,
+                                        orientationMode = orientationMode,
+                                        isSoundEnabled = isSoundEnabled,
+                                        onFilterChange = { cat, diff ->
+                                            viewModel.openRoutinesCatalog(category = cat, difficulty = diff)
+                                        },
+                                        onStartRoutine = { routine ->
+                                            viewModel.startStandaloneWorkout(routine)
+                                        },
+                                        onOpenPairing = {
+                                            viewModel.forceNewTvSession()
+                                        },
+                                        onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
+                                        onToggleSound = { viewModel.toggleSound() }
+                                    )
+                                }
                                 is TvUiState.Pairing -> {
                                     TvPairingScreen(
                                         pinCode = state.pinCode,
@@ -87,7 +102,8 @@ class MainActivity : ComponentActivity() {
                                         isSoundEnabled = isSoundEnabled,
                                         onRefreshCode = { viewModel.forceNewTvSession() },
                                         onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
-                                        onToggleSound = { viewModel.toggleSound() }
+                                        onToggleSound = { viewModel.toggleSound() },
+                                        onOpenCatalog = { viewModel.openRoutinesCatalog() }
                                     )
                                 }
                                 is TvUiState.Connected -> {
@@ -107,13 +123,19 @@ class MainActivity : ComponentActivity() {
                                         state = state.state,
                                         orientationMode = orientationMode,
                                         isSoundEnabled = isSoundEnabled,
+                                        isStandalone = state.isStandalone,
                                         onRotateScreen = { viewModel.cycleOrientation(this@MainActivity) },
                                         onToggleSound = { viewModel.toggleSound() },
-                                        onTogglePause = { viewModel.sendRemoteCommand("TOGGLE_PAUSE") },
-                                        onSkipRest = { viewModel.sendRemoteCommand("SKIP_REST") },
-                                        onNextExercise = { viewModel.sendRemoteCommand("NEXT_EXERCISE") },
-                                        onPrevExercise = { viewModel.sendRemoteCommand("PREV_EXERCISE") },
-                                        onDisconnect = { viewModel.disconnect() }
+                                        onTogglePause = { viewModel.toggleWorkoutPause() },
+                                        onSkipRest = {
+                                            if (state.isStandalone) viewModel.skipStandaloneRest() else viewModel.sendRemoteCommand("SKIP_REST")
+                                        },
+                                        onNextExercise = { viewModel.nextExercise() },
+                                        onPrevExercise = { viewModel.previousExercise() },
+                                        onDisconnect = {
+                                            if (state.isStandalone) viewModel.exitWorkoutToCatalog() else viewModel.disconnect()
+                                        },
+                                        onLogSet = { viewModel.logStandaloneSet() }
                                     )
                                 }
                                 is TvUiState.Summary -> {
@@ -122,13 +144,21 @@ class MainActivity : ComponentActivity() {
                                         routineName = state.routineName,
                                         summary = state.summary,
                                         orientationMode = orientationMode,
-                                        onReturnToPairing = { viewModel.disconnect() }
+                                        isStandalone = state.isStandalone,
+                                        onReturnToPairing = {
+                                            if (state.isStandalone) {
+                                                viewModel.openRoutinesCatalog()
+                                            } else {
+                                                viewModel.disconnect()
+                                            }
+                                        }
                                     )
                                 }
                                 is TvUiState.Error -> {
                                     TvErrorScreen(
                                         message = state.message,
-                                        onRetry = { viewModel.restoreOrInitSession() }
+                                        onRetry = { viewModel.restoreOrInitSession() },
+                                        onContinueOffline = { viewModel.openRoutinesCatalog() }
                                     )
                                 }
                             }
@@ -143,7 +173,10 @@ class MainActivity : ComponentActivity() {
      * Captura prioritaria de eventos del control remoto antes de que cualquier vista secundaria los consuma
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        android.util.Log.d("KynectiaKey", "dispatchKeyEvent: action=${event.action}, keyCode=${event.keyCode}, state=${viewModel.uiState.value::class.simpleName}")
         if (event.action == KeyEvent.ACTION_DOWN) {
+            val current = viewModel.uiState.value
+
             when (event.keyCode) {
                 // Atajos de rotación de pantalla
                 KeyEvent.KEYCODE_MENU,
@@ -162,34 +195,94 @@ class MainActivity : ComponentActivity() {
                     return true
                 }
 
-                // Atajos multimedia de control de reproducción
-                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                    viewModel.handleDpadCenter()
-                    return true
+                // Atajo directo para abrir catálogo de rutinas
+                KeyEvent.KEYCODE_PROG_RED,
+                KeyEvent.KEYCODE_C,
+                KeyEvent.KEYCODE_3 -> {
+                    if (current is TvUiState.Pairing || current is TvUiState.Connected || current is TvUiState.Error) {
+                        viewModel.openRoutinesCatalog()
+                        return true
+                    }
                 }
+            }
 
-                KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                    viewModel.sendRemoteCommand("TOGGLE_PAUSE")
-                    return true
+            if (current is TvUiState.RoutinesCatalog) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                        val routine = current.routines.firstOrNull()
+                        if (routine != null) {
+                            viewModel.startStandaloneWorkout(routine)
+                            return true
+                        }
+                    }
                 }
+            }
 
-                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                    viewModel.sendRemoteCommand("TOGGLE_PAUSE")
-                    return true
+            if (current is TvUiState.LiveWorkout) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_NUMPAD_ENTER,
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                        viewModel.handleDpadCenter()
+                        return true
+                    }
+
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        if (viewModel.handleDpadUp()) return true
+                    }
+
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (viewModel.handleDpadDown()) return true
+                    }
+
+                    KeyEvent.KEYCODE_DPAD_RIGHT,
+                    KeyEvent.KEYCODE_MEDIA_NEXT,
+                    KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                    KeyEvent.KEYCODE_PAGE_DOWN -> {
+                        viewModel.handleDpadRight()
+                        return true
+                    }
+
+                    KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                    KeyEvent.KEYCODE_MEDIA_REWIND,
+                    KeyEvent.KEYCODE_PAGE_UP -> {
+                        viewModel.handleDpadLeft()
+                        return true
+                    }
+
+                    KeyEvent.KEYCODE_MEDIA_PLAY,
+                    KeyEvent.KEYCODE_MEDIA_PAUSE,
+                    KeyEvent.KEYCODE_P -> {
+                        viewModel.toggleWorkoutPause()
+                        return true
+                    }
+
+                    KeyEvent.KEYCODE_BACK,
+                    KeyEvent.KEYCODE_ESCAPE -> {
+                        if (current.isStandalone) {
+                            viewModel.exitWorkoutToCatalog()
+                        } else {
+                            viewModel.disconnect()
+                        }
+                        return true
+                    }
                 }
-
-                KeyEvent.KEYCODE_MEDIA_NEXT,
-                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
-                KeyEvent.KEYCODE_PAGE_DOWN -> {
-                    viewModel.handleDpadRight()
-                    return true
-                }
-
-                KeyEvent.KEYCODE_MEDIA_PREVIOUS,
-                KeyEvent.KEYCODE_MEDIA_REWIND,
-                KeyEvent.KEYCODE_PAGE_UP -> {
-                    viewModel.handleDpadLeft()
-                    return true
+            } else if (current is TvUiState.Summary) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_BACK,
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        if (current.isStandalone) {
+                            viewModel.openRoutinesCatalog()
+                        } else {
+                            viewModel.disconnect()
+                        }
+                        return true
+                    }
                 }
             }
         }
@@ -197,24 +290,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_CENTER,
-            KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                viewModel.handleDpadCenter()
-                return true
-            }
-
-            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                viewModel.handleDpadRight()
-                return true
-            }
-
-            KeyEvent.KEYCODE_DPAD_LEFT -> {
-                viewModel.handleDpadLeft()
-                return true
-            }
-        }
         return super.onKeyDown(keyCode, event)
     }
 }
@@ -255,7 +330,8 @@ private fun TvLoadingScreen() {
 @Composable
 private fun TvErrorScreen(
     message: String,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onContinueOffline: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -290,17 +366,32 @@ private fun TvErrorScreen(
                 modifier = Modifier.fillMaxWidth(0.6f)
             )
             Spacer(modifier = Modifier.height(28.dp))
-            Button(
-                onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KynectiaLime,
-                    contentColor = Color.Black
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Reintentar Conexión", fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = KynectiaLime,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Reintentar Conexión", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onContinueOffline,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DarkSurfaceVariant,
+                        contentColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(20.dp), tint = CianTech)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Modo Sin Conexión", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

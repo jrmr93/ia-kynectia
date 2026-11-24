@@ -212,8 +212,8 @@ export const DashboardView: React.FC = () => {
                 item.difficulty_level === 'beginner'
                   ? 'var(--accent-green)'
                   : item.difficulty_level === 'intermediate'
-                  ? 'var(--accent-cyan)'
-                  : 'var(--accent-orange)';
+                    ? 'var(--accent-cyan)'
+                    : 'var(--accent-orange)';
               return (
                 <div key={item.difficulty_level}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
@@ -295,15 +295,14 @@ export const DashboardView: React.FC = () => {
                     </td>
                     <td>
                       <span
-                        className={`badge ${
-                          log.action === 'CREATE'
-                            ? 'badge-success'
-                            : log.action === 'UPDATE'
+                        className={`badge ${log.action === 'CREATE'
+                          ? 'badge-success'
+                          : log.action === 'UPDATE'
                             ? 'badge-info'
                             : log.action === 'DELETE'
-                            ? 'badge-danger'
-                            : 'badge-purple'
-                        }`}
+                              ? 'badge-danger'
+                              : 'badge-purple'
+                          }`}
                       >
                         {log.action}
                       </span>

@@ -30,6 +30,7 @@ fun TvSummaryScreen(
     routineName: String,
     summary: TvWorkoutSummary,
     orientationMode: TvDisplayOrientation = TvDisplayOrientation.HORIZONTAL,
+    isStandalone: Boolean = false,
     onReturnToPairing: () -> Unit
 ) {
     val mins = summary.totalDurationSeconds / 60
@@ -172,7 +173,7 @@ fun TvSummaryScreen(
                 Icon(Icons.Default.Tv, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Finalizar y Preparar Nueva Sesión",
+                    text = if (isStandalone) "Volver al Catálogo de Rutinas" else "Finalizar y Preparar Nueva Sesión",
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp
                 )

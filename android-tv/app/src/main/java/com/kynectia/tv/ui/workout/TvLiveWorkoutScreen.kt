@@ -53,13 +53,15 @@ fun TvLiveWorkoutScreen(
     state: TvLiveWorkoutState,
     orientationMode: TvDisplayOrientation,
     isSoundEnabled: Boolean,
+    isStandalone: Boolean = false,
     onRotateScreen: () -> Unit,
     onToggleSound: () -> Unit,
     onTogglePause: () -> Unit,
     onSkipRest: () -> Unit,
     onNextExercise: () -> Unit,
     onPrevExercise: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onLogSet: () -> Unit = {}
 ) {
     if (orientationMode.isVerticalLayout) {
         TvLiveWorkoutVerticalContent(
@@ -67,13 +69,15 @@ fun TvLiveWorkoutScreen(
             state = state,
             orientationMode = orientationMode,
             isSoundEnabled = isSoundEnabled,
+            isStandalone = isStandalone,
             onRotateScreen = onRotateScreen,
             onToggleSound = onToggleSound,
             onTogglePause = onTogglePause,
             onSkipRest = onSkipRest,
             onNextExercise = onNextExercise,
             onPrevExercise = onPrevExercise,
-            onDisconnect = onDisconnect
+            onDisconnect = onDisconnect,
+            onLogSet = onLogSet
         )
     } else {
         TvLiveWorkoutHorizontalContent(
@@ -81,13 +85,15 @@ fun TvLiveWorkoutScreen(
             state = state,
             orientationMode = orientationMode,
             isSoundEnabled = isSoundEnabled,
+            isStandalone = isStandalone,
             onRotateScreen = onRotateScreen,
             onToggleSound = onToggleSound,
             onTogglePause = onTogglePause,
             onSkipRest = onSkipRest,
             onNextExercise = onNextExercise,
             onPrevExercise = onPrevExercise,
-            onDisconnect = onDisconnect
+            onDisconnect = onDisconnect,
+            onLogSet = onLogSet
         )
     }
 }
@@ -101,13 +107,15 @@ private fun TvLiveWorkoutHorizontalContent(
     state: TvLiveWorkoutState,
     orientationMode: TvDisplayOrientation,
     isSoundEnabled: Boolean,
+    isStandalone: Boolean = false,
     onRotateScreen: () -> Unit,
     onToggleSound: () -> Unit,
     onTogglePause: () -> Unit,
     onSkipRest: () -> Unit,
     onNextExercise: () -> Unit,
     onPrevExercise: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onLogSet: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "live_pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
@@ -457,13 +465,15 @@ private fun TvLiveWorkoutHorizontalContent(
             isResting = state.isResting,
             isSoundEnabled = isSoundEnabled,
             orientationLabel = orientationMode.label,
+            isStandalone = isStandalone,
             onTogglePause = onTogglePause,
             onSkipRest = onSkipRest,
             onNextExercise = onNextExercise,
             onPrevExercise = onPrevExercise,
             onRotateScreen = onRotateScreen,
             onToggleSound = onToggleSound,
-            onDisconnect = onDisconnect
+            onDisconnect = onDisconnect,
+            onLogSet = onLogSet
         )
     }
 }
@@ -477,13 +487,15 @@ private fun TvLiveWorkoutVerticalContent(
     state: TvLiveWorkoutState,
     orientationMode: TvDisplayOrientation,
     isSoundEnabled: Boolean,
+    isStandalone: Boolean = false,
     onRotateScreen: () -> Unit,
     onToggleSound: () -> Unit,
     onTogglePause: () -> Unit,
     onSkipRest: () -> Unit,
     onNextExercise: () -> Unit,
     onPrevExercise: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onLogSet: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_vertical")
     val pulseAlpha by infiniteTransition.animateFloat(
@@ -769,6 +781,7 @@ private fun TvLiveWorkoutVerticalContent(
             isResting = state.isResting,
             isSoundEnabled = isSoundEnabled,
             orientationLabel = orientationMode.label,
+            isStandalone = isStandalone,
             onTogglePause = onTogglePause,
             onSkipRest = onSkipRest,
             onNextExercise = onNextExercise,
@@ -776,6 +789,7 @@ private fun TvLiveWorkoutVerticalContent(
             onRotateScreen = onRotateScreen,
             onToggleSound = onToggleSound,
             onDisconnect = onDisconnect,
+            onLogSet = onLogSet,
             isCompact = true
         )
     }
@@ -1502,6 +1516,7 @@ private fun TvRemoteControlBar(
     isResting: Boolean,
     isSoundEnabled: Boolean,
     orientationLabel: String,
+    isStandalone: Boolean = false,
     onTogglePause: () -> Unit,
     onSkipRest: () -> Unit,
     onNextExercise: () -> Unit,
@@ -1509,6 +1524,7 @@ private fun TvRemoteControlBar(
     onRotateScreen: () -> Unit,
     onToggleSound: () -> Unit,
     onDisconnect: () -> Unit,
+    onLogSet: () -> Unit = {},
     isCompact: Boolean = false
 ) {
     Surface(
@@ -1524,17 +1540,52 @@ private fun TvRemoteControlBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Botón Acción Principal: Pausa / Continuar / Saltar descanso
-                TvRemoteActionButton(
-                    icon = if (isResting) Icons.AutoMirrored.Filled.ArrowForward else if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                    label = if (isResting) "Saltar" else if (isPaused) "Continuar" else "Pausar",
-                    shortcutKey = "OK",
-                    onClick = {
-                        if (isResting) onSkipRest() else onTogglePause()
-                    },
-                    isPrimary = true
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (isStandalone) {
+                    TvRemoteActionButton(
+                        icon = if (isResting) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Check,
+                        label = if (isResting) "Saltar" else "Registrar Serie",
+                        shortcutKey = "OK",
+                        onClick = {
+                            if (isResting) onSkipRest() else onLogSet()
+                        },
+                        isPrimary = true
+                    )
+
+                    TvRemoteActionButton(
+                        icon = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                        label = if (isPaused) "Reanudar" else "Pausar",
+                        shortcutKey = "P",
+                        onClick = onTogglePause
+                    )
+
+                    if (!isCompact) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = DarkSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = "▲▼ ±2.5kg",
+                                color = KynectiaLime,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                } else {
+                    // Botón Acción Principal: Pausa / Continuar / Saltar descanso
+                    TvRemoteActionButton(
+                        icon = if (isResting) Icons.AutoMirrored.Filled.ArrowForward else if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                        label = if (isResting) "Saltar" else if (isPaused) "Continuar" else "Pausar",
+                        shortcutKey = "OK",
+                        onClick = {
+                            if (isResting) onSkipRest() else onTogglePause()
+                        },
+                        isPrimary = true
+                    )
+                }
 
                 // Anterior
                 TvRemoteActionButton(
